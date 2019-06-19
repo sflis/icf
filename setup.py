@@ -24,7 +24,7 @@ setup(
     version=package.version.get_version(pep440=True),
     description="An indexable container file format.",
     author="Samuel Flis",
-    author_email="samuel.flis@desy.de",
+    author_email="samuel.d.flis@gmail.com",
     url="https://github.com/sflis/SSDAQ",
     packages=find_packages(),
     provides=["icf"],

@@ -216,8 +216,7 @@ class IndexedContainerWriterV1:
             self._write(self.compressor.compress(byte_buff))
         else:
             self._write(byte_buff)
-            # for data in self._buffer:
-                # self._write(data)
+
 
         # constructing the index and writing it in the bunch trailer
         index = list(zip(*self._cbunchindex))
