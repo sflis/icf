@@ -3,12 +3,12 @@ from importlib import import_module
 import pyarrow
 import numpy as np
 
-class NumpyArray:
-    def __init__(self,array):
-        self.array = array
+class PyArrowSerializer:
+    def __init__(self,obj):
+        self.obj = obj
 
     def serialize(self):
-        return pyarrow.serialize(self.array).to_buffer()
+        return pyarrow.serialize(self.obj).to_buffer()
 
     @classmethod
     def deserialize(cls,data):
@@ -47,7 +47,7 @@ class Frame:
             obj (TYPE): Description
         """
         if isinstance(obj, np.ndarray):
-            obj = NumpyArray(obj)
+            obj = PyArrowSerializer(obj)
         self._objects[key] = obj
 
     def items(self):
