@@ -17,6 +17,7 @@ class SerializationDispatcher:
     _names = []
     serializers = {}
     serializers_c = {}
+
     def __init_subclass__(cls, types, **kwargs):
         super().__init_subclass__(**kwargs)
         if cls.__class__ not in cls._names:
@@ -64,7 +65,7 @@ class N(SerializationDispatcher, types=[np.ndarray]):
         shape = self.arr.shape
         data = bytearray(
             struct.pack(
-                "bb{}H".format(len(shape)),
+                "<bb{}I".format(len(shape)),
                 self._types[self.arr.dtype],
                 len(shape),
                 *shape,
@@ -77,8 +78,8 @@ class N(SerializationDispatcher, types=[np.ndarray]):
     def deserialize(cls, data):
         dtype = cls._types_r[data[0]]
         ndim = data[1]
-        shape = struct.unpack(f"{ndim}H", data[2 : 2 + ndim * 2])
-        arr = np.frombuffer(data[2 + ndim * 2 :], dtype)
+        shape = struct.unpack(f"<{ndim}I", data[2 : 2 + ndim * 4])
+        arr = np.frombuffer(data[2 + ndim * 4 :], dtype)
         if cls._big:
             arr.byteswap(True)
         return arr.reshape(shape)
@@ -155,11 +156,22 @@ class Q(SerializationDispatcher, types=[list, tuple, set]):
         self.seqcon = obj
 
     def serialize(self):
-        data = bytearray("{}".format(self.seq_types[type(self.seqcon)]), encoding='utf-8')
+        data = bytearray(
+            "{}".format(self.seq_types[type(self.seqcon)]), encoding="utf-8"
+        )
         for el in self.seqcon:
             els = dispatch_serializer(el)
             tmpdata = els.serialize()
-            el_header = struct.pack("<sI", els.__class__.__name__.encode(), len(tmpdata))
+            size = len(tmpdata) * 2
+            # The size of the object is always encoded as 2*(number of bytes).
+            # The first bit of the size field is reserved to indicate whether
+            # the size of the field is 16 or 32 bit.
+            if size > 2 ** 16:
+                el_header = struct.pack(
+                    "<sI", els.__class__.__name__.encode(), size + 1
+                )
+            else:
+                el_header = struct.pack("<sH", els.__class__.__name__.encode(), size)
             data.extend(el_header)
             data.extend(tmpdata)
         return data
@@ -170,10 +182,17 @@ class Q(SerializationDispatcher, types=[list, tuple, set]):
         seq_type = cls.seq_types_r[str(chr(data[0]))]
         data_p = 1
         while data_p < len(data):
-            des_c, size = struct.unpack("<sI", data[data_p: data_p + 5])
+            des_c, size = struct.unpack("<sH", data[data_p : data_p + 3])
             deserializer = SerializationDispatcher.serializers_c[des_c.decode()]
-            data_p += 5
-            tmp_list.append(deserializer.deserialize(data[data_p: data_p + size]))
+            if size % 2 != 0:
+                des_c, size = struct.unpack("<sI", data[data_p : data_p + 5])
+                data_p += 5
+                size -= 1
+            else:
+                data_p += 3
+            size //= 2
+
+            tmp_list.append(deserializer.deserialize(data[data_p : data_p + size]))
             data_p += size
         return seq_type(tmp_list)
 
@@ -244,9 +263,9 @@ class Frame:
         pos = 0
         for k, v in self.items():
             v = dispatch_serializer(v)
-            classes.append(
-                "{},{},{}\n".format(k, v.__class__.__name__, v.__class__.__module__)
-            )
+            _module = v.__class__.__module__
+            _module = _module if _module != __name__ else ""
+            classes.append("{},{},{}\n".format(k, v.__class__.__name__, _module))
             d = v.serialize()
             pos += len(d)
             index.append(pos)
@@ -304,7 +323,10 @@ class Frame:
 
             if class_ not in self._cache.keys():
                 try:
-                    m = import_module(module_)
+                    if module_ == "":
+                        m = import_module(__name__)
+                    else:
+                        m = import_module(module_)
                     self._cache[class_] = getattr(m, class_)
                 except AttributeError:
                     self._cache[class_] = None

@@ -31,7 +31,7 @@ for i in range(3000):
         data[int(np.random.uniform(0, 10000 - 1))] = np.random.exponential(2)
 
     frame.add("randomarr", data)
-    frame['a_list_of_lists'] = [1,3,4,5,[9,4,5],(93,3.034)]
+    frame["a_list_of_lists"] = [1, 3, 4, 5, [9, 4, 5], (93, 3.034)]
     writer.write(frame.serialize())
 
 writer.close()
