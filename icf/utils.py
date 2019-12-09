@@ -2,7 +2,7 @@ import math
 import inspect
 
 
-def get_si_prefix(value: float) -> (float,str):
+def get_si_prefix(value: float) -> (float, str):
     """ Returns the given value to the closest si prefix and
         the correct si prefix
 
@@ -64,7 +64,7 @@ def get_attritbues(obj_):
     return attributes
 
 
-def get_utc_timestamp()->(int,int):
+def get_utc_timestamp() -> (int, int):
     """Get a unix utc timestamp as a (second,nano second) tuple
 
     Returns:
@@ -76,5 +76,3 @@ def get_utc_timestamp()->(int,int):
     s = int(timestamp)
     ns = int((timestamp - s) * 1e9)
     return s, ns
-
-

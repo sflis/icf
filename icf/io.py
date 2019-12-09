@@ -8,10 +8,6 @@ import numpy as np
 import bz2
 
 
-
-###Raw object IO classes#####
-
-
 class IndexedContainerWriter:
     """ Acts as a file object for writing chunks of serialized data
         to file. Prepends each chunk with:
@@ -56,46 +52,55 @@ class IndexedContainerWriter:
 
 @IndexedContainerWriter._register
 class IndexedContainerWriterV0:
-    """ Acts as a file object for writing chunks of serialized data
-        to file. Prepends each chunk with:
-        chunk length in bytes (4 bytes)
-        and a crc32 hash      (4 bytes)
+    """Acts as a file object for writing chunks of serialized data
+    to file. Prepends each chunk with:
+    chunk length in bytes (4 bytes)
+    and a crc32 hash      (4 bytes)
 
-        The file header is 24 bytes long and has the following layout
+    The file header is 24 bytes long and has the following layout
 
-            bytes:      field:
-            0-7         Custom field for file format specifications (set by the header parameter)
-            8-11        Protocol version
-            12-15       Not used
-            16-19       Not used
-            20-23       Not used
+        bytes:      field:
+        0-7         Custom field for file format specifications (set by the header parameter)
+        8-11        Protocol version
+        12-15       Not used
+        16-19       Not used
+        20-23       Not used
 
-        General file structure:
-            +-------------+
-            | File Header |
-            +-------------+
-            | Chunk Header|
-            +-------------+
-            |     Data    |
-            +-------------+
-            | Chunk Header|
-            +-------------+
-            |     Data    |
-            +-------------+
-                  ...
-                  ...
+    General file structure:
+        +-------------+
+        | File Header |
+        +-------------+
+        | Chunk Header|
+        +-------------+
+        |     Data    |
+        +-------------+
+        | Chunk Header|
+        +-------------+
+        |     Data    |
+        +-------------+
+              ...
+              ...
+
+    Attributes:
+        data_counter (int): Description
+        file (object): Description
+        filename (str): Description
+        version (int): Description
 
     """
 
     _protocol_v = 0
     _chunk_header = struct.Struct("<2I")
     _file_header = struct.Struct("<Q4I")
+
     def __init__(self, filename: str, header: int = 0):
         self.filename = filename
         self.file = open(self.filename, "wb")
         self.data_counter = 0
         self.version = 0
-        self.file.write(IndexedContainerWriterV0._file_header.pack(header, self.version, 0, 0, 0))
+        self.file.write(
+            IndexedContainerWriterV0._file_header.pack(header, self.version, 0, 0, 0)
+        )
         # self.protocol = protocol
 
     def __enter__(self):
@@ -110,7 +115,9 @@ class IndexedContainerWriterV0:
             args:
                 data (bytes): bytes to be writen to file
         """
-        self.file.write(IndexedContainerWriterV0._chunk_header.pack(len(data), binascii.crc32(data)))
+        self.file.write(
+            IndexedContainerWriterV0._chunk_header.pack(len(data), binascii.crc32(data))
+        )
         self.file.write(data)
         self.data_counter += 1
 
@@ -120,7 +127,16 @@ class IndexedContainerWriterV0:
 
 @IndexedContainerWriter._register
 class IndexedContainerWriterV1:
-    """ An indexed
+    """An indexed
+
+    Attributes:
+        bunchsize (int): Description
+        compress (bool): Description
+        compressor (object): Description
+        data_counter (int): Description
+        filename (str): Description
+        time_stamp (int): Description
+        version (int): Description
 
     """
 
@@ -153,18 +169,18 @@ class IndexedContainerWriterV1:
         compressor_id = 0
         if compressor is not None:
             self.compress = True
-            self.compressor = IndexedContainerWriterV1._compressors[compressor][0]
-            compressor_id = IndexedContainerWriterV1._compressors[compressor][1]
+            self.compressor = self._compressors[compressor][0]
+            compressor_id = self._compressors[compressor][1]
 
         self.data_counter = 0
-        self.version = IndexedContainerWriterV1._protocol_v
+        self.version = self._protocol_v
         self.time_stamp = int(datetime.now().timestamp())
         self.bunchsize = bunchsize
         self._fp = 0
         self._marker_ext = marker_ext
         header_ext = header_ext or []
         self._write(
-            IndexedContainerWriterV1._file_header.pack(
+            self._file_header.pack(
                 "SOF".encode(),
                 marker_ext.encode(),
                 self.version,
@@ -217,15 +233,13 @@ class IndexedContainerWriterV1:
         else:
             self._write(byte_buff)
 
-
         # constructing the index and writing it in the bunch trailer
         index = list(zip(*self._cbunchindex))
         n = len(self._buffer)
         bunch_index = struct.pack("{}I{}I".format(n, n), *index[0], *index[1])
         self._write(bunch_index)
 
-
-        bunch_index_trailer = IndexedContainerWriterV1._bunch_trailer_header.pack(
+        bunch_index_trailer = self._bunch_trailer_header.pack(
             self._fp - self._last_bunch_fp,
             self._fp - bunch_start_fp,
             self._fp,
@@ -239,7 +253,7 @@ class IndexedContainerWriterV1:
         self._last_bunch_fp = self._fp
 
         self._write(bunch_index_trailer)
-
+        self._file.flush()
         # reseting/updating the last bunch descriptors
         self._cbunchindex.clear()
         self._buffer.clear()
@@ -313,7 +327,7 @@ class IndexedContainerReader:
         """
         self._reader.resetfp()
 
-    def __getitem__(self, ind: Union[int, slice, list])->bytes:
+    def __getitem__(self, ind: Union[int, slice, list]) -> bytes:
         """Indexing interface to the streamed file.
         Objects are read by their index, slice or list of indices.
 
@@ -413,6 +427,9 @@ class IndexedContainerReaderV1:
 
     _protocol_v = 1
     _file_header = IndexedContainerWriterV1._file_header
+    _compressors = IndexedContainerWriterV1._compressors
+    _bunch_trailer_header = IndexedContainerWriterV1._bunch_trailer_header
+
     def __init__(self, file):
         """Summary
 
@@ -422,7 +439,7 @@ class IndexedContainerReaderV1:
         Raises:
             TypeError: Description
         """
-        fileheader_def = IndexedContainerWriterV1._file_header
+        fileheader_def = self._file_header
         self.file = file
         self.file.seek(0)
         fileheader = self.file.read(fileheader_def.size)
@@ -431,17 +448,17 @@ class IndexedContainerReaderV1:
         )
         if marker[:3].decode() != "SOF":
             raise TypeError("This file appears not to be a stream object file (SOF)")
-        if self._version != IndexedContainerWriterV1._protocol_v:
+        if self._version != self._protocol_v:
             raise TypeError(
                 "This file is written with protocol V{}"
                 " while this class reads protocol V{}".format(
-                    self._version, IndexedContainerWriterV1._protocol_v
+                    self._version, self._protocol_v
                 )
             )
         self._compressor = None
         if self._compressed > 0:
             compressorsr = {}
-            for k, v in IndexedContainerWriterV1._compressors.items():
+            for k, v in self._compressors.items():
                 compressorsr[v[1]] = (v[0], k)
             self._compressor = compressorsr[self._compressed][0]
             self._compressor_name = compressorsr[self._compressed][1]
@@ -463,24 +480,20 @@ class IndexedContainerReaderV1:
         BunchTrailer = namedtuple(
             "BunchTrailer", "bunchoff dataoff fileoff crc bunchsize ndata index objsize"
         )
-        self.file.seek(-IndexedContainerWriterV1._bunch_trailer_header.size, os.SEEK_END)
+        self.file.seek(-self._bunch_trailer_header.size, os.SEEK_END)
 
         self.filesize = self.file.tell()
         self.file_index = [0]
         while self.file.tell() > self._fp_start:
             # read bunch trailer
-            last_bunch_trailer = self.file.read(
-                IndexedContainerWriterV1._bunch_trailer_header.size
-            )
-            bunchoff, dataoff, fileoff, crc, ndata, bunch_n = IndexedContainerWriterV1._bunch_trailer_header.unpack(
+            last_bunch_trailer = self.file.read(self._bunch_trailer_header.size)
+            bunchoff, dataoff, fileoff, crc, ndata, bunch_n = self._bunch_trailer_header.unpack(
                 last_bunch_trailer
             )
 
             # read bunch index
             self.file.seek(
-                self.file.tell()
-                - IndexedContainerWriterV1._bunch_trailer_header.size
-                - ndata * 2 * 4
+                self.file.tell() - self._bunch_trailer_header.size - ndata * 2 * 4
             )
             index = struct.unpack(
                 "{}I{}I".format(ndata, ndata), self.file.read(ndata * 2 * 4)
@@ -568,6 +581,7 @@ class IndexedContainerReaderV0:
     _protocol_v = 0
     _chunk_header = IndexedContainerWriterV0._chunk_header
     _file_header = IndexedContainerWriterV0._file_header
+
     def __init__(self, file):
         self.file = file
         self._scan_file()
@@ -640,5 +654,3 @@ class IndexedContainerReaderV0:
             return None
         size, crc = IndexedContainerReaderV0._chunk_header.unpack(sized)
         return self.file.read(size)
-
-

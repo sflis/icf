@@ -1,4 +1,5 @@
 from . import version
+
 __version__ = version.get_version(pep440=False)
 
 from .io import IndexedContainerWriter, IndexedContainerReader

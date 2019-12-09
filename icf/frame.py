@@ -1,65 +1,238 @@
 import struct
-from importlib import import_module
-import pyarrow
 import numpy as np
+from importlib import import_module
+import logging
+import sys
 
-class PyArrowSerializer:
-    def __init__(self,obj):
-        self.obj = obj
+
+class SerializationDispatcher:
+
+    """Summary
+
+    Attributes:
+        subclasses (list): Description
+    """
+
+    subclasses = []
+    _names = []
+    serializers = {}
+    serializers_c = {}
+    def __init_subclass__(cls, types, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if cls.__class__ not in cls._names:
+            cls.subclasses.append(cls)
+            cls._names.append(cls.__name__)
+            for t in types:
+                cls.serializers[t] = cls
+                cls.serializers_c[cls.__name__] = cls
+        return cls
+
+
+def dispatch_serializer(obj):
+    if type(obj) in SerializationDispatcher.serializers:
+        return SerializationDispatcher.serializers[type(obj)](obj)
+    return obj
+
+
+class N(SerializationDispatcher, types=[np.ndarray]):
+
+    _big = sys.byteorder == "big"
+    _types = {
+        np.dtype(np.uint8): 1,
+        np.dtype(np.int8): 2,
+        np.dtype(np.uint16): 3,
+        np.dtype(np.int16): 4,
+        np.dtype(np.uint32): 5,
+        np.dtype(np.int32): 6,
+        np.dtype(np.uint64): 7,
+        np.dtype(np.int64): 8,
+        np.dtype(np.float16): 9,
+        np.dtype(np.float32): 10,
+        np.dtype(np.float64): 11,
+        np.dtype(np.float128): 12,
+        np.dtype(np.complex64): 13,
+        np.dtype(np.complex128): 14,
+    }
+    _types_r = {v: k for k, v in _types.items()}
+
+    def __init__(self, obj):
+        self.arr = obj
 
     def serialize(self):
-        return pyarrow.serialize(self.obj).to_buffer()
+        if self._big:
+            self.arr.byteswap(True)
+        shape = self.arr.shape
+        data = bytearray(
+            struct.pack(
+                "bb{}H".format(len(shape)),
+                self._types[self.arr.dtype],
+                len(shape),
+                *shape,
+            )
+        )
+        data.extend(self.arr.tobytes())
+        return data
 
     @classmethod
-    def deserialize(cls,data):
-        return pyarrow.deserialize(data)
+    def deserialize(cls, data):
+        dtype = cls._types_r[data[0]]
+        ndim = data[1]
+        shape = struct.unpack(f"{ndim}H", data[2 : 2 + ndim * 2])
+        arr = np.frombuffer(data[2 + ndim * 2 :], dtype)
+        if cls._big:
+            arr.byteswap(True)
+        return arr.reshape(shape)
 
-def dynamic_import(abs_module_path, class_name):
-    module_object = import_module(abs_module_path)
 
-    target_class = getattr(module_object, class_name)
+class S(SerializationDispatcher, types=[str]):
+    def __init__(self, obj):
+        self.str = obj
 
-    return target_class
+    def serialize(self):
+        return self.str.encode()
+
+    @classmethod
+    def deserialize(cls, data):
+        return data.decode()
+
+
+class B(SerializationDispatcher, types=[bytes, bytearray]):
+    def __init__(self, obj):
+        self.bytes = obj
+
+    def serialize(self):
+        return self.bytes
+
+    @classmethod
+    def deserialize(cls, data):
+        return cls.data
+
+
+class I(SerializationDispatcher, types=[int]):
+    def __init__(self, obj):
+        self.int = obj
+
+    def serialize(self):
+        size = int(self.int.bit_length() / 8 + 1)
+        return self.int.to_bytes(size, byteorder="little")
+
+    @classmethod
+    def deserialize(cls, data):
+        return int.from_bytes(data, byteorder="little")
+
+
+class F(SerializationDispatcher, types=[float]):
+    def __init__(self, obj):
+        self.float = obj
+
+    def serialize(self):
+        return self.float.hex().encode()
+
+    @classmethod
+    def deserialize(cls, data):
+        return float.fromhex(data.decode())
+
+
+class C(SerializationDispatcher, types=[complex]):
+    def __init__(self, obj):
+        self.complex = obj
+
+    def serialize(self):
+        data = ",".join((self.complex.real.hex(), self.complex.imag.hex()))
+        return bytes(data, "utf-8")
+
+    @classmethod
+    def deserialize(cls, data):
+        real, imag = data.decode().split(",")
+        return complex(float.fromhex(real), float.fromhex(imag))
+
+
+class Q(SerializationDispatcher, types=[list, tuple, set]):
+    seq_types = {list: "L", tuple: "T", set: "E"}
+    seq_types_r = {v: k for k, v in seq_types.items()}
+
+    def __init__(self, obj):
+        self.seqcon = obj
+
+    def serialize(self):
+        data = bytearray("{}".format(self.seq_types[type(self.seqcon)]), encoding='utf-8')
+        for el in self.seqcon:
+            els = dispatch_serializer(el)
+            tmpdata = els.serialize()
+            el_header = struct.pack("<sI", els.__class__.__name__.encode(), len(tmpdata))
+            data.extend(el_header)
+            data.extend(tmpdata)
+        return data
+
+    @classmethod
+    def deserialize(cls, data):
+        tmp_list = []
+        seq_type = cls.seq_types_r[str(chr(data[0]))]
+        data_p = 1
+        while data_p < len(data):
+            des_c, size = struct.unpack("<sI", data[data_p: data_p + 5])
+            deserializer = SerializationDispatcher.serializers_c[des_c.decode()]
+            data_p += 5
+            tmp_list.append(deserializer.deserialize(data[data_p: data_p + size]))
+            data_p += size
+        return seq_type(tmp_list)
 
 
 class Frame:
-
-    """Summary
-    """
-
     def __init__(self):
-        """Summary
-        """
         self._objects = {}
         self._cache = {}
+        self._serialized = {}
+        self._log = logging.getLogger(__name__)
 
-    @classmethod
-    def from_bytes(cls, data):
-        inst = cls()
-        inst.deserialize(data)
-        return inst
-
-    def add(self, key:str, obj):
-        """Summary
-
-        Args:
-            key (str): Description
-            obj (TYPE): Description
-        """
-        if isinstance(obj, np.ndarray):
-            obj = PyArrowSerializer(obj)
+    def add(self, key, obj):
+        # add checks here to see if the object supports serialization
         self._objects[key] = obj
 
     def items(self):
-        return self._objects.items()
+        for k, v in self._objects.items():
+            yield k, v
+
+        for k, v in self._serialized.items():
+            if k in self._objects:
+
+                continue
+            self._deserialized_obj(k)
+            yield k, self._objects[k]
+
+    def __setitem__(self, key, obj):
+        self.add(key, obj)
 
     def __getitem__(self, key):
+        if key not in self._objects and key in self._serialized:
+            self._deserialized_obj(key)
         return self._objects[key]
 
-    def keys(self):
-        return self._objects.keys()
+    def get(self, key):
+        """ Behaves like the dict version of `get`. Returns
+            the object if it exiest in the frame. If not
+            the return value is None.
 
-    def serialize(self)->bytes:
+        Args:
+            key (str): the key string
+
+        Returns:
+            obj or None: the object stored at `key` or n
+        """
+        if key not in self._objects and key in self._serialized:
+            self._deserialized_obj(key)
+        return self._objects.get(key)
+
+    def keys(self):
+        """
+
+        Returns:
+            TYPE: Description
+        """
+        keys = set(list(self._objects.keys()) + list(self._serialized.keys()))
+        return iter(list(keys))
+
+    def serialize(self) -> bytes:
         """Serializes the frame to a bytestream
 
         Returns:
@@ -69,7 +242,8 @@ class Frame:
         index = []
         classes = []
         pos = 0
-        for k, v in self._objects.items():
+        for k, v in self.items():
+            v = dispatch_serializer(v)
             classes.append(
                 "{},{},{}\n".format(k, v.__class__.__name__, v.__class__.__module__)
             )
@@ -86,12 +260,35 @@ class Frame:
             classes.encode(),
             len(classes),
             n_obj,
-            pos
+            pos,
         )
         data_stream.extend(trailer)
         return data_stream
 
-    def deserialize(self, data_stream:bytes):
+    def _deserialized_obj(self, key):
+        class_, data = self._serialized[key]
+        if self._cache[class_] is not None:
+            cls = self._cache[class_]
+            try:
+                self._objects[key] = cls.deserialize(data)
+            except Exception as e:
+                self._log.error(
+                    "An error occured while deserializing object {} of type {}:\n{}".format(
+                        key, class_, e
+                    )
+                )
+        else:
+            # If we don't know how to deserialize the object we just expose
+            # the raw byte stream
+            self._objects[key] = data
+
+    @classmethod
+    def deserialize(cls, data_stream: bytes):
+        inst = cls()
+        inst.deserialize_m(data_stream)
+        return inst
+
+    def deserialize_m(self, data_stream: bytes):
         """Deserializes a frame from byte buffer
 
         Args:
@@ -111,26 +308,31 @@ class Frame:
                     self._cache[class_] = getattr(m, class_)
                 except AttributeError:
                     self._cache[class_] = None
-
-            if self._cache[class_] is not None:
-                cls = self._cache[class_]
-                self._objects[key] = cls.deserialize(data_stream[last_pos:i])
-            else:
-                # If we don't know how to deserialize the object we just expose
-                # the raw byte stream
-                self._objects[key] = data_stream[last_pos:i]
+                    self._log.warn(
+                        f"Failed to import class `{class_}` to deserialize object at key: `{key}`"
+                    )
+            self._serialized[key] = (class_, data_stream[last_pos:i])
             last_pos = i
 
+    @classmethod
+    def unpack(cls, data_stream: bytes):
+        return cls.deserialize(data_stream)  # frame
 
-# class FrameObject:
-#     def __init__(self, pack, unpack):
-#         self.pack = pack
-#         self.unpack = unpack
+    def pack(self):
+        return self.serialize()
 
-#     def serialize(self):
-#         return self.pack()
+    def __str__(self):
+        s = "{\n"
+        for k in set(list(self._objects.keys()) + list(self._serialized.keys())):
+            if k not in self._objects:
+                class_, _ = self._serialized[k]
+                obj_str = "**serialized data**"
+            else:
+                class_ = type(self._objects[k])
+                obj_str = self._objects[k].__str__()
+            s += f"`{k}` <{class_}>: {obj_str},\n"
+        s += "}"
+        return s
 
-#     def deserialize(self, data):
-#         return self.unpack(data)
-
-
+    def __repr__(self):
+        return self.__str__()
