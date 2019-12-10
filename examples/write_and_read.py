@@ -22,13 +22,13 @@ class MyObject:
 
 startTime = datetime.now()
 writer = io.IndexedContainerWriter("testing.icf", compressor=None)  #'bz2')
-for i in range(3000):
+for i in range(90000):
 
     frame = Frame()
     frame.add("rawarray", np.arange(100))
-    data = np.zeros(10000)
+    data = np.zeros(1000)
     for i in range(np.random.poisson(200)):
-        data[int(np.random.uniform(0, 10000 - 1))] = np.random.exponential(2)
+        data[int(np.random.uniform(0, 1000 - 1))] = np.random.exponential(2)
 
     frame.add("randomarr", data)
     frame["a_list_of_lists"] = [1, 3, 4, 5, [9, 4, 5], (93, 3.034)]
@@ -44,8 +44,10 @@ raws = reader[:]
 for r in raws:
     frame = Frame.deserialize(r)
     # frames.append(frame)
-    s = frame["rawarray"]
-    s = frame["randomarr"]
+    for k, v in frame.items():
+        pass
+    # s = frame["rawarray"]
+    # s = frame["randomarr"]
 
 print(frame)
 for k, v in frame.items():

@@ -123,29 +123,32 @@ class I(SerializationDispatcher, types=[int]):
 
 
 class F(SerializationDispatcher, types=[float]):
+    encode = struct.Struct("<d")
+
     def __init__(self, obj):
         self.float = obj
 
     def serialize(self):
-        return self.float.hex().encode()
+        return self.encode.pack(self.float)
 
     @classmethod
     def deserialize(cls, data):
-        return float.fromhex(data.decode())
+        return cls.encode.unpack(data)[0]
 
 
 class C(SerializationDispatcher, types=[complex]):
+    encode = struct.Struct("<dd")
     def __init__(self, obj):
         self.complex = obj
 
     def serialize(self):
-        data = ",".join((self.complex.real.hex(), self.complex.imag.hex()))
-        return bytes(data, "utf-8")
+        data = self.encode.pack(self.complex.real, self.complex.imag)
+        return data
 
     @classmethod
     def deserialize(cls, data):
-        real, imag = data.decode().split(",")
-        return complex(float.fromhex(real), float.fromhex(imag))
+        real, imag = cls.encode.unpack(data)
+        return complex(real, imag)
 
 
 class Q(SerializationDispatcher, types=[list, tuple, set]):
@@ -184,12 +187,15 @@ class Q(SerializationDispatcher, types=[list, tuple, set]):
         while data_p < len(data):
             des_c, size = struct.unpack("<sH", data[data_p : data_p + 3])
             deserializer = SerializationDispatcher.serializers_c[des_c.decode()]
+            # If size is not divisable by 2 the size of the field is 4 bytes
+            # instead of 2 bytes
             if size % 2 != 0:
                 des_c, size = struct.unpack("<sI", data[data_p : data_p + 5])
                 data_p += 5
-                size -= 1
+                size -= 1  # set the first bit to 0
             else:
                 data_p += 3
+            # Remove the encoding by dividing by 2
             size //= 2
 
             tmp_list.append(deserializer.deserialize(data[data_p : data_p + size]))
