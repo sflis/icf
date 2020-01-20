@@ -19,6 +19,7 @@
 #include <memory>
 
 #include <fstream>
+#include "icf/archive.h"
 
 namespace icf{
 
@@ -52,7 +53,8 @@ public:
     void flush();
 
     void close();
-        ICFFileHeader file_header_;
+
+    ICFFileHeader file_header_;
 private:
 
     std::fstream file_handle_;
@@ -60,6 +62,7 @@ private:
     uint64_t current_write_pointer_;
     uint64_t data_start_point_;
     std::vector<uint64_t> object_index_;
+    Archive<std::fstream> serializer_stream_;
 };
 
 
