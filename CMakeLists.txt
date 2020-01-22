@@ -75,3 +75,9 @@ target_link_libraries(test_icf ${LIBTARGET})
 #                   COMMAND ${CMAKE_COMMAND} -E create_symlink "${PROJECT_SOURCE_DIR}/python/" "${PYTHON_PACKAGE_PATH}/interfaces")
 # # Creating a symlink to the python extension in the main python package directory tree
 # add_custom_command(TARGET ${PYTARGET} POST_BUILD COMMAND ${CMAKE_COMMAND} -E create_symlink "$<TARGET_FILE:${PYTARGET}>" "${PYTHON_EXTENSIONS_PATH}/${PYTARGET}")
+
+configure_file(
+        ${CMAKE_SOURCE_DIR}/env_shell.sh.in
+        ${CMAKE_BINARY_DIR}/env_shell.sh
+        @ONLY
+    )

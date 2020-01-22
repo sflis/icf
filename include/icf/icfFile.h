@@ -28,7 +28,7 @@ namespace icf{
 class ICFFile{
     struct ICFFileHeader{
 
-        ICFFileHeader():version(0),compression(0),unused(0),ext_head_len(0){
+        ICFFileHeader():version_(0),compression_(0),unused_(0),ext_head_len_(0){
             strncpy(file_identifier_,"ICF",4);
             strncpy(file_sub_identifier_,"",4);
 

@@ -25,16 +25,19 @@ frame.add("rawarray", np.arange(100))
 #     data[int(np.random.uniform(0, 1000 - 1))] = np.random.exponential(2)
 
 # frame.add("randomarr", data)
-frame["array"] = np.array([2,3,5,6,4,5,.120])
+frame["array"] = np.array([[2,3,5],[6,4,5],[12,3,.120]])
 frame["a_list_of_lists"] = [1, 3, 4, 5, [9, 4, 5], (93, 3.034)]
 print(f.size())
 f.write(frame)
+
 print(f.size())
 f.close()
 
 f = FrameFile('Testing_python_ext.icf')
 print(f.size())
 frame2 = f.read_at(0)
+print(frame2)
+frame2['array']
 print(frame2)
 frame3 = Frame()
 frame3['col1'] = np.arange(100)
