@@ -25,6 +25,8 @@ void icf_file(py::module &m) {
     icf_file.def(py::init<std::string>());
     icf_file.def("read_at",&read_at);
     icf_file.def("write",&write);
+    icf_file.def("size",&ICFFile::size);
+    icf_file.def("close",&ICFFile::close);
 
 }
 } //icf namespace

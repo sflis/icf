@@ -17,21 +17,21 @@ ICFFile::ICFFile(std::string path, ICFFile::access_mode mode):serializer_stream_
             break;
     }
 
-    file_handle_.open(path,omode);
+    file_handle_.open(path, omode);
 
     current_read_pointer_ = file_handle_.tellg();
     file_handle_.seekp(0, std::ios_base::end);
     current_write_pointer_ = file_handle_.tellp();
-    auto length  = current_write_pointer_;
+    auto length = current_write_pointer_;
     file_handle_.seekp(0);
     // std::cout<<current_read_pointer_<<"  "<<current_write_pointer_<<" "<<data_start_point_<< std::endl;
 
     if(current_write_pointer_>current_read_pointer_ && mode !=trunc){
         serializer_stream_>>file_header_;
-        data_start_point_ = file_handle_.tellp();
+        current_write_pointer_ = file_handle_.tellp();
         size_t obj_size;
         auto bheader_size = sizeof(obj_size);
-        auto curr_fp = data_start_point_;
+        auto curr_fp = current_write_pointer_;
 
         while(file_handle_.tellp()<length){
             object_index_.push_back(file_handle_.tellp());
@@ -43,7 +43,7 @@ ICFFile::ICFFile(std::string path, ICFFile::access_mode mode):serializer_stream_
     }
     else{
         serializer_stream_<<file_header_;
-        data_start_point_ = file_handle_.tellp();
+        current_write_pointer_ = file_handle_.tellp();
     }
 
     // std::cout<<current_read_pointer_<<"  "<<current_write_pointer_<<" "<<data_start_point_<< std::endl;
@@ -59,7 +59,7 @@ void ICFFile::write(const void* data, std::size_t size){
     file_handle_.seekp(current_write_pointer_);
     object_index_.push_back(file_handle_.tellp());
     serializer_stream_<<size;
-    file_handle_.write((char*)data, size);
+    file_handle_.write((const char*) data, size);
     current_write_pointer_ = file_handle_.tellp();
 }
 
