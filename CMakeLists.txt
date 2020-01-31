@@ -53,9 +53,24 @@ set_target_properties(${PYTARGET}
 # Creating a symlink to the python package
 add_custom_command(TARGET ${PYTARGET} POST_BUILD
                   COMMAND ${CMAKE_COMMAND} -E create_symlink "${PROJECT_SOURCE_DIR}/icf/" "${CMAKE_CURRENT_BINARY_DIR}/icf/_icf")
-# Creating a symlink to the python extension in the main python package directory tree
-# add_custom_command(TARGET ${PYTARGET} POST_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory  "${CMAKE_CURRENT_BINARY_DIR}/icf/_ext")
-# add_custom_command(TARGET ${PYTARGET} POST_BUILD COMMAND ${CMAKE_COMMAND} -E create_symlink "$<TARGET_FILE:${PYTARGET}>" "${CMAKE_CURRENT_BINARY_DIR}/icf/_ext/${PYTARGET}")
+# Generating the correct setup.py file
+file(GENERATE OUTPUT setup.py.in INPUT setup.py.in.in)
+configure_file(render-variables.cmake.in render-variables.cmake @ONLY)
+add_custom_command(
+    OUTPUT "${PROJECT_BINARY_DIR}/setup.py"
+    COMMAND "${CMAKE_COMMAND}"
+        -DPROJECT_BINARY_DIR="${PROJECT_BINARY_DIR}"
+        -DPROJECT_NAME="${PROJECT_NAME}"
+        -DICF_VERSION_LIB="${ICF_VERSION_LIB}"
+
+        -P "${PROJECT_BINARY_DIR}/render-variables.cmake"
+    MAIN_DEPENDENCY "${PROJECT_BINARY_DIR}/setup.py.in"
+    DEPENDS "${PROJECT_BINARY_DIR}/render-variables.cmake"
+)
+add_custom_target(
+    make-setupy.py ALL
+    DEPENDS "${PROJECT_BINARY_DIR}/setup.py"
+)
 
 
 configure_file(
@@ -70,10 +85,6 @@ CONFIGURE_FILE(__init__.py
     ${CMAKE_CURRENT_BINARY_DIR}/icf/__init__.py
 )
 
-# Ditto for the setup file.
-CONFIGURE_FILE(setup.py
-   ${CMAKE_CURRENT_BINARY_DIR}/setup.py
-)
 
 
 add_executable(test_icf ctests/test_icf.cc)# $<TARGET_OBJECTS:test_main>)

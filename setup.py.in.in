@@ -2,21 +2,11 @@ from setuptools import setup, find_packages
 import os
 import sys
 
-install_requires = ["numpy", "pyparsing", "pyyaml", "protobuf"]
-
-#
-# from shutil import copyfile, rmtree
-
-# if not os.path.exists("tmps"):
-#     os.makedirs("tmps")
-# copyfile("icf/version.py", "tmps/version.py")
-# __import__("tmps.version")
-# package = sys.modules["tmps"]
-# package.version.update_release_version("icf")
+install_requires = ["numpy"]
 
 setup(
     name="pyicf",
-    version="",#,package.version.get_version(pep440=True),
+    version="@ICF_VERSION_LIB@",
     description="An indexable container file format.",
     author="Samuel Flis",
     author_email="samuel.d.flis@gmail.com",
@@ -32,7 +22,7 @@ setup(
     #         '': '${CMAKE_CURRENT_BINARY_DIR}'
     #   },
       package_data = {
-        '': ['icf_py.cpython-37m-x86_64-linux-gnu.so']
+        'icf': ['_ext/$<TARGET_FILE_NAME:icf_py>']
       },
     classifiers=[
         "Programming Language :: Python",
