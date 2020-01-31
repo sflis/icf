@@ -4,7 +4,6 @@ from importlib import import_module
 import logging
 import sys
 
-
 class SerializationDispatcher:
 
     """Summary
@@ -364,3 +363,6 @@ class Frame:
 
     def __repr__(self):
         return self.__str__()
+
+
+__all__ = [Frame]

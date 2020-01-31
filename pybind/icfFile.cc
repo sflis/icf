@@ -4,7 +4,7 @@
 #include "icf/icfFile.h"
 #include <pybind11/pybind11.h>
 #include <string>
-
+#include "version_config.h"
 namespace icf {
 
 namespace py = pybind11;
@@ -21,11 +21,13 @@ void write(ICFFile &obj, std::string &data){
 
 
 void icf_file(py::module &m) {
+    m.def("_get_version",&getVersion);
+
     py::class_<ICFFile> icf_file(m, "ICFFile");
     icf_file.def(py::init<std::string>());
-    icf_file.def("read_at",&read_at);
-    icf_file.def("write",&write);
-    icf_file.def("size",&ICFFile::size);
+    icf_file.def("read_at",&read_at,"Reads chunk at index", py::arg("index"));
+    icf_file.def("write",&write,"Writes bytes in chunk at the end of file", py::arg("data"));
+    icf_file.def("size",&ICFFile::size,"The number of chunks in the file");
     icf_file.def("close",&ICFFile::close);
 
 }

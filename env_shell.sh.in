@@ -6,7 +6,7 @@ if [ -z "${PYICF_SHELL+x}" ];then
 
     export PYICF_SHELL=1
     # export PATH_BACKUP=${PATH}
-    export PYTHONPATH=@CMAKE_BINARY_DIR@
+    export PYTHONPATH=@CMAKE_BINARY_DIR@/icf
     # export PATH=@CMAKE_BINARY_DIR@:@CMAKE_BINARY_DIR@/bin:
     export PS1_T_BACKUP=${PS1}
     PS1="(py-icf dev)"${PS1}

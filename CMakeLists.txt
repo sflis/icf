@@ -6,6 +6,8 @@ set(PYTARGET ${PROJECT_NAME}_py)
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+find_package(Git QUIET)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Save executables to bin directory
@@ -13,18 +15,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Dependencies
 find_package(pybind11 REQUIRED)
-# find_package(Doxygen)
-
-# if(Doxygen_FOUND)
-#     add_subdirectory(docs)
-# else()
-#     message(STATUS "Doxygen not found, not building docs")
-# endif()
 
 include(CTest)
 
 # src
-# set(HEADER_LIST include/sstcam/interfaces/WaveformDataPacket.h include/sstcam/interfaces/Waveform.h)
 add_library(${LIBTARGET} SHARED src/icfFile.cc)
 target_include_directories(${LIBTARGET} PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/>
@@ -36,10 +30,50 @@ install (TARGETS ${LIBTARGET} EXPORT icf-file-targets LIBRARY DESTINATION lib)
 # Makes it easier for IDEs to find all headers
 source_group(TREE "${PROJECT_SOURCE_DIR}/include" PREFIX "Header Files" FILES ${HEADER_LIST})
 
+#Get git version number
+execute_process(COMMAND ${GIT_EXECUTABLE} describe --tags --abbrev=7
+                WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+                OUTPUT_VARIABLE ICF_VERSION_LIB
+                ERROR_QUIET
+                OUTPUT_STRIP_TRAILING_WHITESPACE)
+configure_file( version_config.h.in ${CMAKE_BINARY_DIR}/generated/version_config.h )
+include_directories( ${CMAKE_BINARY_DIR}/generated/)
+
+
 # pybind
 pybind11_add_module(${PYTARGET} pybind/module.cc pybind/icfFile.cc)
 target_link_libraries(${PYTARGET} PRIVATE ${LIBTARGET})
-install(TARGETS ${PYTARGET} LIBRARY DESTINATION ${PYTHON_SITE_PACKAGES})
+set_target_properties(${PYTARGET}
+    PROPERTIES
+      PREFIX ""
+      LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/icf/_ext/"
+)
+
+# Python stuff
+# Creating a symlink to the python package
+add_custom_command(TARGET ${PYTARGET} POST_BUILD
+                  COMMAND ${CMAKE_COMMAND} -E create_symlink "${PROJECT_SOURCE_DIR}/icf/" "${CMAKE_CURRENT_BINARY_DIR}/icf/_icf")
+# Creating a symlink to the python extension in the main python package directory tree
+# add_custom_command(TARGET ${PYTARGET} POST_BUILD COMMAND ${CMAKE_COMMAND} -E make_directory  "${CMAKE_CURRENT_BINARY_DIR}/icf/_ext")
+# add_custom_command(TARGET ${PYTARGET} POST_BUILD COMMAND ${CMAKE_COMMAND} -E create_symlink "$<TARGET_FILE:${PYTARGET}>" "${CMAKE_CURRENT_BINARY_DIR}/icf/_ext/${PYTARGET}")
+
+
+configure_file(
+        ${CMAKE_SOURCE_DIR}/env_shell.sh.in
+        ${CMAKE_BINARY_DIR}/env_shell.sh
+        @ONLY
+    )
+
+# Place the initialization file in the output directory for the Python
+# bindings. This will simplify the installation.
+CONFIGURE_FILE(__init__.py
+    ${CMAKE_CURRENT_BINARY_DIR}/icf/__init__.py
+)
+
+# Ditto for the setup file.
+CONFIGURE_FILE(setup.py
+   ${CMAKE_CURRENT_BINARY_DIR}/setup.py
+)
 
 
 add_executable(test_icf ctests/test_icf.cc)# $<TARGET_OBJECTS:test_main>)
@@ -76,8 +110,3 @@ target_link_libraries(test_icf ${LIBTARGET})
 # # Creating a symlink to the python extension in the main python package directory tree
 # add_custom_command(TARGET ${PYTARGET} POST_BUILD COMMAND ${CMAKE_COMMAND} -E create_symlink "$<TARGET_FILE:${PYTARGET}>" "${PYTHON_EXTENSIONS_PATH}/${PYTARGET}")
 
-configure_file(
-        ${CMAKE_SOURCE_DIR}/env_shell.sh.in
-        ${CMAKE_BINARY_DIR}/env_shell.sh
-        @ONLY
-    )

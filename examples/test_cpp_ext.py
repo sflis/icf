@@ -43,8 +43,30 @@ frame3 = Frame()
 frame3['col1'] = np.arange(100)
 frame3['col2'] = np.random.uniform(0,1,100)
 frame4 = Frame.deserialize(frame3.serialize())
-print(frame4)
+# print(frame4)
 import pandas as pd
 df = pd.DataFrame(dict(frame4))
-print(df)
+# print(df)
+
+frame = Frame()
+#frame["array"] = np.array([[2,3,5],[6,4,5],[12,3,.120]])
+frame['large array'] = np.random.uniform(0,1000,(600,10,10))
+frame["a_list_of_lists"] = [1, 3, 4, 5, [9, 4, 5], (93, 3.034)]
+data = frame.serialize()
+print(len(data))
+# f = icf_py.ICFFile('TestingSpeed.icf')
+f = FrameFile('TestingSpeed.icf')
+for i in range(100000):
+    # f.write(bytes(data))
+    f.write(frame)
+f.close()
+
+
+
+
+
+
+
+
+
 

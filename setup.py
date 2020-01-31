@@ -5,18 +5,18 @@ import sys
 install_requires = ["numpy", "pyparsing", "pyyaml", "protobuf"]
 
 #
-from shutil import copyfile, rmtree
+# from shutil import copyfile, rmtree
 
-if not os.path.exists("tmps"):
-    os.makedirs("tmps")
-copyfile("icf/version.py", "tmps/version.py")
-__import__("tmps.version")
-package = sys.modules["tmps"]
-package.version.update_release_version("icf")
+# if not os.path.exists("tmps"):
+#     os.makedirs("tmps")
+# copyfile("icf/version.py", "tmps/version.py")
+# __import__("tmps.version")
+# package = sys.modules["tmps"]
+# package.version.update_release_version("icf")
 
 setup(
     name="pyicf",
-    version=package.version.get_version(pep440=True),
+    version="",#,package.version.get_version(pep440=True),
     description="An indexable container file format.",
     author="Samuel Flis",
     author_email="samuel.d.flis@gmail.com",
@@ -28,6 +28,12 @@ setup(
     extras_requires={
         #'encryption': ['cryptography']
     },
+    # package_dir = {
+    #         '': '${CMAKE_CURRENT_BINARY_DIR}'
+    #   },
+      package_data = {
+        '': ['icf_py.cpython-37m-x86_64-linux-gnu.so']
+      },
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
@@ -44,4 +50,4 @@ setup(
 )
 
 
-rmtree("tmps")
+# rmtree("tmps")
