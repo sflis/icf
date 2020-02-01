@@ -22,7 +22,7 @@
 #include <fstream>
 
 #include <ctime>
-
+#include <chrono>
 namespace icf{
 
 class ICFFile{
@@ -37,7 +37,8 @@ class ICFFile{
         template <class T>
         void Serialize(T& archive)
         {
-            time_stamp_ = std::time(nullptr);
+            time_stamp_2 = std::chrono::system_clock::now();
+            time_stamp_ = std::chrono::system_clock::to_time_t(time_stamp_2);
             archive & file_identifier_ &
                     file_sub_identifier_ &
                     version_ &
@@ -45,6 +46,8 @@ class ICFFile{
                     time_stamp_&
                     unused_ &
                     ext_head_len_;
+            time_stamp_2 = std::chrono::system_clock::from_time_t(time_stamp_);
+
         }
 
         char file_identifier_[4];
@@ -52,6 +55,7 @@ class ICFFile{
         uint16_t version_;
         uint16_t compression_;
         std::time_t time_stamp_;
+        std::chrono::time_point<std::chrono::system_clock> time_stamp_2;
         uint16_t unused_;
         uint16_t ext_head_len_;
     };
@@ -73,7 +77,7 @@ public:
 
     uint64_t size(){return object_index_.size();}
 
-
+    std::chrono::time_point<std::chrono::system_clock> get_timestamp(){return file_header_.time_stamp_2;}
 private:
     ICFFileHeader file_header_;
     std::fstream file_handle_;

@@ -3,6 +3,7 @@
 
 #include "icf/icfFile.h"
 #include <pybind11/pybind11.h>
+#include <pybind11/chrono.h>
 #include <string>
 #include "version_config.h"
 namespace icf {
@@ -28,7 +29,8 @@ void icf_file(py::module &m) {
     icf_file.def("read_at",&read_at,"Reads chunk at index", py::arg("index"));
     icf_file.def("write",&write,"Writes bytes in chunk at the end of file", py::arg("data"));
     icf_file.def("size",&ICFFile::size,"The number of chunks in the file");
-    icf_file.def("close",&ICFFile::close);
+    icf_file.def("close",&ICFFile::close,"Closes the file handle");
+    icf_file.def("get_timestamp",&ICFFile::get_timestamp,"Returns file creation timestamp");
 
 }
 } //icf namespace

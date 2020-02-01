@@ -24,7 +24,6 @@ ICFFile::ICFFile(std::string path, ICFFile::access_mode mode):serializer_stream_
     current_write_pointer_ = file_handle_.tellp();
     auto length = current_write_pointer_;
     file_handle_.seekp(0);
-    // std::cout<<current_read_pointer_<<"  "<<current_write_pointer_<<" "<<data_start_point_<< std::endl;
 
     if(current_write_pointer_>current_read_pointer_ && mode !=trunc){
         serializer_stream_>>file_header_;
@@ -38,7 +37,6 @@ ICFFile::ICFFile(std::string path, ICFFile::access_mode mode):serializer_stream_
             serializer_stream_>>obj_size;
             curr_fp += obj_size + bheader_size;
             file_handle_.seekp(curr_fp);
-            // std::cout<<curr_fp<<std::endl;
         }
     }
     else{
@@ -46,7 +44,6 @@ ICFFile::ICFFile(std::string path, ICFFile::access_mode mode):serializer_stream_
         current_write_pointer_ = file_handle_.tellp();
     }
 
-    // std::cout<<current_read_pointer_<<"  "<<current_write_pointer_<<" "<<data_start_point_<< std::endl;
 }
 
 ICFFile::~ICFFile(){
@@ -66,7 +63,8 @@ void ICFFile::write(const void* data, std::size_t size){
 
 
 std::shared_ptr<std::vector<unsigned char> > ICFFile::read_at(uint64_t index){
-    auto fp = object_index_[index];
+    
+    auto fp = object_index_.at(index);
     size_t obj_size;
     file_handle_.seekp(fp);
     serializer_stream_>>obj_size;
