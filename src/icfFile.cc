@@ -27,17 +27,7 @@ ICFFile::ICFFile(std::string path, ICFFile::access_mode mode):serializer_stream_
 
     if(current_write_pointer_>current_read_pointer_ && mode !=trunc){
         serializer_stream_>>file_header_;
-        current_write_pointer_ = file_handle_.tellp();
-        size_t obj_size;
-        auto bheader_size = sizeof(obj_size);
-        auto curr_fp = current_write_pointer_;
-
-        while(file_handle_.tellp()<length){
-            object_index_.push_back(file_handle_.tellp());
-            serializer_stream_>>obj_size;
-            curr_fp += obj_size + bheader_size;
-            file_handle_.seekp(curr_fp);
-        }
+        scan_file(file_handle_.tellp());        
     }
     else{
         serializer_stream_<<file_header_;
@@ -72,4 +62,71 @@ std::shared_ptr<std::vector<unsigned char> > ICFFile::read_at(uint64_t index){
 
     file_handle_.read((char*) data->data(), obj_size);
     return data;
+}
+
+
+void ICFFile::scan_file(uint64_t pos){
+    size_t obj_size;
+    auto bheader_size = sizeof(obj_size);
+    auto length = current_write_pointer_;
+    file_handle_.seekp(pos);
+    while(file_handle_.tellp()<length){
+        object_index_.push_back(file_handle_.tellp());
+        serializer_stream_>>obj_size;
+        pos += obj_size + bheader_size;
+        file_handle_.seekp(pos);
+    }
+}
+
+
+
+
+ICFFileV2::ICFFileV2(std::string path, ICFFileV2::access_mode mode):serializer_stream_(file_handle_){
+    auto omode = std::ios_base::in | std::ios_base::binary;
+    switch(mode){
+        case append:
+            omode |= std::ios_base::app | std::ios_base::out;
+            break;
+        case trunc:
+            omode |= std::ios_base::trunc | std::ios_base::out;
+        default:
+            break;
+    }
+
+    file_handle_.open(path, omode);
+
+    current_read_pointer_ = file_handle_.tellg();
+    file_handle_.seekp(0, std::ios_base::end);
+    current_write_pointer_ = file_handle_.tellp();
+    auto length = current_write_pointer_;
+    file_handle_.seekp(0);
+
+    if(current_write_pointer_>current_read_pointer_ && mode !=trunc){
+        serializer_stream_>>file_header_;
+        scan_file(file_handle_.tellp());        
+    }
+    else{
+        serializer_stream_<<file_header_;
+        current_write_pointer_ = file_handle_.tellp();
+    }
+    auto bt = ICFBunchTrailer();
+    serializer_stream_>>bt;
+}
+
+ICFFileV2::~ICFFileV2(){
+    file_handle_.close();
+}
+
+
+void ICFFileV2::scan_file(uint64_t pos){
+    size_t obj_size;
+    auto bheader_size = sizeof(obj_size);
+    auto length = current_write_pointer_;
+    file_handle_.seekp(pos);
+    while(file_handle_.tellp()<length){
+        object_index_.push_back(file_handle_.tellp());
+        serializer_stream_>>obj_size;
+        pos += obj_size + bheader_size;
+        file_handle_.seekp(pos);
+    }
 }

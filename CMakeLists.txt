@@ -18,6 +18,25 @@ find_package(pybind11 REQUIRED)
 
 include(CTest)
 
+include(ExternalProject)
+ExternalProject_Add(
+    doctest
+    PREFIX ${CMAKE_BINARY_DIR}/doctest
+    GIT_REPOSITORY https://github.com/onqtam/doctest.git
+    TIMEOUT 10
+    UPDATE_COMMAND ${GIT_EXECUTABLE} pull
+    GIT_SHALLOW 1
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+    LOG_DOWNLOAD ON
+)
+
+# Expose required variable (DOCTEST_INCLUDE_DIR) to parent scope
+ExternalProject_Get_Property(doctest source_dir)
+set(DOCTEST_INCLUDE_DIR ${source_dir}/doctest CACHE INTERNAL "Path to include folder for doctest")
+
+
 # src
 add_library(${LIBTARGET} SHARED src/icfFile.cc)
 target_include_directories(${LIBTARGET} PUBLIC
@@ -86,12 +105,24 @@ CONFIGURE_FILE(__init__.py
 )
 
 
-
 add_executable(test_icf ctests/test_icf.cc)# $<TARGET_OBJECTS:test_main>)
 target_link_libraries(test_icf ${LIBTARGET})
 
+
+
 # # ctests
+# ctests
+add_library(test_main OBJECT ctests/test_main.cc)
+target_include_directories(test_main PUBLIC  ${DOCTEST_INCLUDE_DIR})
+add_executable(test_ICFFile ctests/ICFFile.cc $<TARGET_OBJECTS:test_main> )
+add_test(NAME test_ICFFile COMMAND test_ICFFile)
+target_link_libraries(test_ICFFile ${LIBTARGET})
+target_include_directories(test_ICFFile PUBLIC ctests ${DOCTEST_INCLUDE_DIR})
+target_compile_features(test_ICFFile PRIVATE cxx_std_11)
+
 # add_library(test_main OBJECT ctests/test_main.cc)
+
+
 
 # add_executable(test_WaveformDataPacket ctests/WaveformDataPacket.cc $<TARGET_OBJECTS:test_main>)
 # add_test(NAME test_WaveformDataPacket COMMAND test_WaveformDataPacket)

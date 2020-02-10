@@ -164,7 +164,8 @@ class Archive
         Archive(STREAM_TYPE& stream) : m_stream(stream)
         {
         }
-
+        template <class T>
+            T& getStream(){return m_stream;}
     public:
         template <class T>
             const Archive& operator<<(const T& v) const
