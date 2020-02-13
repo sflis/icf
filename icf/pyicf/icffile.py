@@ -6,7 +6,7 @@ from datetime import datetime
 import os
 from collections import namedtuple
 import numpy as np
-
+from icf._icf.utils import get_si_prefix
 class ICFFile:
     _file_header = struct.Struct("<4s4s2HQ2H")
     _bunch_trailer_header = struct.Struct("<2H4Q3I")
@@ -81,6 +81,25 @@ class ICFFile:
                     len(header_ext),
                 )
             )
+
+    def __getitem__(self, ind) -> bytes:
+        """Indexing interface to the streamed file.
+        Objects are read by their index, slice or list of indices.
+
+        Args:
+            ind (Union[int, slice, list]): an integer index, slice or list off indices to be read
+
+        Returns:
+            bytes: Bytes that represent the read object
+        """
+        if isinstance(ind, slice):
+            data = [self.read_at(ii) for ii in range(*ind.indices(self.n_entries))]
+            return data
+        elif isinstance(ind, list):
+            data = [self.read_at(ii) for ii in ind]
+            return data
+        elif isinstance(ind, int):
+            return self.read_at(ind)
 
     def __enter__(self):
         return self
@@ -250,6 +269,26 @@ class ICFFile:
 
         #     return self.file.read(obji[2])
 
+    def read(self) -> bytes:
+        """ Reads one object at the position of the file pointer.
+
+            Returns:
+                bytes: Bytes that represent the object
+        """
+        self._current_index += 1
+        return self.read_at(self._current_index - 1)
+
+    def __str__(self):
+
+        s = "{}:\n".format(self.__class__.__name__)
+        s += "filename: {}\n".format(self.filename)
+        s += "timestamp: {}\n".format(self.timestamp)
+        s += "n_entries: {}\n".format(self._reader.n_entries)
+        s += "file size: {} {}B\n".format(*get_si_prefix(self._reader.filesize))
+        for k, v in self.metadata.items():
+            s += "{}: {}\n".format(k, v)
+        s += "file format version: {}".format(self.version)
+        return s
 
 from collections import deque
 
