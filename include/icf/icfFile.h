@@ -23,6 +23,7 @@
 
 #include <ctime>
 #include <chrono>
+
 namespace icf{
 
 class ICFFile{
@@ -97,7 +98,7 @@ private:
 class ICFFileV2{
     struct ICFBunchTrailer{
 
-        ICFBunchTrailer():version_(0){
+        ICFBunchTrailer(std::weak_ptr<std::vector<char*> >):version_(0){
             time_stamp2_ = std::chrono::system_clock::now();
             time_stamp_ = std::chrono::system_clock::to_time_t(time_stamp2_);
         }
@@ -107,7 +108,8 @@ class ICFFileV2{
             archive & version_;
 
 
-            archive & time_stamp_ & 
+            archive & unused_ &
+                    time_stamp_ & 
                     file_offset_ &
                     prev_bunch_offset_ &
                     bunch_data_offset_ &
@@ -116,8 +118,9 @@ class ICFFileV2{
                     flags_;
 
         }
-
+   
         uint16_t version_;
+        uint16_t unused_;
         std::time_t time_stamp_;
         std::chrono::time_point<std::chrono::system_clock> time_stamp2_;
         uint64_t file_offset_;

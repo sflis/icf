@@ -109,8 +109,8 @@ ICFFileV2::ICFFileV2(std::string path, ICFFileV2::access_mode mode):serializer_s
         serializer_stream_<<file_header_;
         current_write_pointer_ = file_handle_.tellp();
     }
-    auto bt = ICFBunchTrailer();
-    serializer_stream_>>bt;
+    // auto bt = ICFBunchTrailer();
+    // serializer_stream_>>bt;
 }
 
 ICFFileV2::~ICFFileV2(){

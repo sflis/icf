@@ -443,9 +443,14 @@ class IndexedContainerReaderV1:
         self.file = file
         self.file.seek(0)
         fileheader = self.file.read(fileheader_def.size)
-        marker, extmarker, self._version, self._timestamp, self._compressed, self._lenheadext = fileheader_def.unpack(
-            fileheader
-        )
+        (
+            marker,
+            extmarker,
+            self._version,
+            self._timestamp,
+            self._compressed,
+            self._lenheadext,
+        ) = fileheader_def.unpack(fileheader)
         if marker[:3].decode() != "SOF":
             raise TypeError("This file appears not to be a stream object file (SOF)")
         if self._version != self._protocol_v:
@@ -487,9 +492,14 @@ class IndexedContainerReaderV1:
         while self.file.tell() > self._fp_start:
             # read bunch trailer
             last_bunch_trailer = self.file.read(self._bunch_trailer_header.size)
-            bunchoff, dataoff, fileoff, crc, ndata, bunch_n = self._bunch_trailer_header.unpack(
-                last_bunch_trailer
-            )
+            (
+                bunchoff,
+                dataoff,
+                fileoff,
+                crc,
+                ndata,
+                bunch_n,
+            ) = self._bunch_trailer_header.unpack(last_bunch_trailer)
 
             # read bunch index
             self.file.seek(

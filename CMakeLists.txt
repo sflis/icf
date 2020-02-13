@@ -8,6 +8,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(Git QUIET)
+find_package(Python3 COMPONENTS Interpreter)
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 # Save executables to bin directory
@@ -72,6 +74,16 @@ set_target_properties(${PYTARGET}
 # Creating a symlink to the python package
 add_custom_command(TARGET ${PYTARGET} POST_BUILD
                   COMMAND ${CMAKE_COMMAND} -E create_symlink "${PROJECT_SOURCE_DIR}/icf/" "${CMAKE_CURRENT_BINARY_DIR}/icf/_icf")
+# Python stuff
+# Creating a symlink to the python tests
+add_custom_command(TARGET ${PYTARGET} POST_BUILD
+                  COMMAND ${CMAKE_COMMAND} -E create_symlink "${PROJECT_SOURCE_DIR}/pytest/" "${CMAKE_CURRENT_BINARY_DIR}/pytest")
+
+
+if(Python3_Interpreter_FOUND)
+  add_test(NAME PythonTests COMMAND Python3::Interpreter -m pytest -r a -v WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pytest")
+endif()
+
 # Generating the correct setup.py file
 file(GENERATE OUTPUT setup.py.in INPUT setup.py.in.in)
 configure_file(render-variables.cmake.in render-variables.cmake @ONLY)

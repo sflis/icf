@@ -4,6 +4,7 @@ from importlib import import_module
 import logging
 import sys
 
+
 class SerializationDispatcher:
 
     """Summary
@@ -137,6 +138,7 @@ class F(SerializationDispatcher, types=[float]):
 
 class C(SerializationDispatcher, types=[complex]):
     encode = struct.Struct("<dd")
+
     def __init__(self, obj):
         self.complex = obj
 
