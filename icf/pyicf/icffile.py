@@ -1,12 +1,11 @@
 import struct
-
-# import binascii
-# from .utils import get_si_prefix
+from collections import deque, namedtuple
 from datetime import datetime
 import os
-from collections import namedtuple
 import numpy as np
 from icf._icf.utils import get_si_prefix
+
+
 class ICFFile:
     _file_header = struct.Struct("<4s4s2HQ2H")
     _bunch_trailer_header = struct.Struct("<2H4Q3I")
@@ -37,6 +36,7 @@ class ICFFile:
         self._bunch_number = 0
         self._bunch_buffer = BunchBuffer(10)
         self._file_index = [0]
+
         omode = "b"
         if mode == "append":
             omode += "a+"
@@ -164,7 +164,7 @@ class ICFFile:
         self._write(bunch_index)
 
         # Write offset to begining of bunch trailer
-        self._write(struct.pack("I", self._file.tell() - curr_bt_fp))
+        self._write(struct.pack("<I", self._file.tell() - curr_bt_fp))
 
         # Keep the file pointer for the current bunch
         self._last_bunch_fp = curr_bt_fp
@@ -184,7 +184,8 @@ class ICFFile:
         # encodes the offset to said bunch trailer
         self._file.seek(pos_end - 4)
         bt_start_offset = struct.unpack("<I", self._file.read(4))[0]
-        self._file.seek(pos_end - 4 - bt_start_offset)
+        current_bt_fp = pos_end - 4 - bt_start_offset
+        self._file.seek(current_bt_fp)
         rawindex = {}
         curr_bunch = 1
         while self._file.tell() >= pos_start and curr_bunch > 0:
@@ -202,8 +203,9 @@ class ICFFile:
                 bunch_n,
                 flags
             ) = self._bunch_trailer_header.unpack(last_bunch_trailer)
+
             curr_bunch = bunch_n
-            index = struct.unpack("{}I".format(ndata), self._file.read(ndata * 4))
+            index = struct.unpack("<{}I".format(ndata), self._file.read(ndata * 4))
             objsizes = np.array(index, dtype=np.uint32)
             rawindex[(0, bunch_n)] = self._BunchTrailer(
                 bunchoff,  # Offset to earlier bunch or file header if first bunch
@@ -214,8 +216,10 @@ class ICFFile:
                 [0] + list(np.cumsum(objsizes[:-1])),  # Object offsets in bunch
                 objsizes,  # object sizes
             )
-            self._file.seek(self._file.tell() - bunchoff)
-            print('Ndata',ndata,self._file.tell(),pos_start,curr_bunch)
+            current_bt_fp -= bunchoff
+            self._file.seek(current_bt_fp)
+
+            print('Ndata',ndata,self._file.tell(),pos_start,curr_bunch,bunchoff)
         return rawindex
 
     def _construct_file_index(self, rawindex):
@@ -226,7 +230,6 @@ class ICFFile:
             for i, obj in enumerate(bunch.index):
                 self._index.append((k, int(obj), int(bunch.objsize[i])))
         self.n_entries = len(self._index)
-
 
     def _get_bunch(self, bunch_id):
 
@@ -257,7 +260,7 @@ class ICFFile:
 
         if ind > self.n_entries - 1:
             raise IndexError(
-                "The requested file object ({}) is out of range".format(ind)
+                "The requested file object at index ({}) is out of range".format(ind)
             )
         obji = self._index[ind]
         if True:  # self._compressed:
@@ -290,7 +293,8 @@ class ICFFile:
         s += "file format version: {}".format(self.version)
         return s
 
-from collections import deque
+    def size(self):
+        return self.n_entries
 
 
 class BunchBuffer(dict):
