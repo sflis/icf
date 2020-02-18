@@ -7,6 +7,26 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+if((APPLE) OR (EXISTS $ENV{CONDA_PREFIX}))
+  # The following settings were copied from
+  # https://cmake.org/Wiki/CMake_RPATH_handling
+  # to avoid the rpath issue (issue #11998) that appears on OS X El Capitan
+  # https://forge.in2p3.fr/issues/11998
+
+  # use, i.e. don't skip the full RPATH for the build tree
+  set(CMAKE_SKIP_BUILD_RPATH  FALSE)
+
+  # when building, don't use the install RPATH already
+  # (but later on when installing)
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE) # Changed to TRUE by A.O.
+
+  set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+
+  # add the automatically determined parts of the RPATH
+  # which point to directories outside the build tree to the install RPATH
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+endif()
+
 find_package(Git QUIET)
 find_package(Python3 COMPONENTS Interpreter)
 
