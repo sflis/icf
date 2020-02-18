@@ -1,5 +1,3 @@
 from ._icf import *
-from ._ext.icf_py import *
-from ._ext.icf_py import _get_version
 
-__version__ = _get_version()
+__version__ = "0.1.0"#_get_version()

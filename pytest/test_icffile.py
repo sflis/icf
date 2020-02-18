@@ -1,9 +1,9 @@
 import pytest
 from icf import pyicf
-from icf import ICFFile
 import os
 
-@pytest.fixture(params=[ICFFile, pyicf.ICFFile])
+
+@pytest.fixture(params=[pyicf.ICFFile])
 def icf_impl(request):
     return request.param
 
@@ -28,6 +28,7 @@ def test_write_and_readback_from_icffile(icf_impl):
     assert f.read_at(0) == testdata1, "Read back correct data"
     assert f.read_at(1) == testdata2, "Read back correct data"
 
+
 def test_read_while_writing(icf_impl):
     try:
         os.remove("/tmp/test.icf")
@@ -47,8 +48,8 @@ def test_write_read_multiple_bunches(icf_impl):
         os.remove("/tmp/test.icf")
     except:
         pass
-    f = pyicf.ICFFile("/tmp/test.icf",bunchsize=50)
-    data = b"0"*26
+    f = pyicf.ICFFile("/tmp/test.icf", bunchsize=50)
+    data = b"0" * 26
 
     for i in range(6):
         f.write(data)
@@ -59,6 +60,7 @@ def test_write_read_multiple_bunches(icf_impl):
 
     for i in range(6):
         assert f.read_at(i) == data
+
 
 def test_read_merged_files(icf_impl):
     try:
@@ -81,7 +83,6 @@ def test_read_merged_files(icf_impl):
     assert fcat.size() == 2, "Correct number of elements"
     assert fcat.read_at(0) == testdata1, "Correct data from file 1"
     assert fcat.read_at(1) == testdata2, "Correct data from file 2"
-
 
 
 def test_bunch_buffer():

@@ -3,14 +3,11 @@
 #### It has been auto-generated ###########
 ###########################################
 from setuptools import setup, find_packages
-import os
-import sys
-
 install_requires = ["numpy"]
 
 setup(
     name="pyicf",
-    version="@ICF_VERSION_LIB@",
+    version="0.1.0",
     description="An indexable container file format.",
     author="Samuel Flis",
     author_email="samuel.d.flis@gmail.com",
@@ -19,9 +16,6 @@ setup(
     provides=["icf"],
     license="GNU Lesser General Public License v3 or later",
     install_requires=install_requires,
-    package_data = {
-        'icf': ['_ext/$<TARGET_FILE_NAME:icf_py>']
-      },
     classifiers=[
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
