@@ -138,6 +138,7 @@ class F(SerializationDispatcher, types=[float]):
 
 class C(SerializationDispatcher, types=[complex]):
     encode = struct.Struct("<dd")
+
     def __init__(self, obj):
         self.complex = obj
 
@@ -364,3 +365,6 @@ class Frame:
 
     def __repr__(self):
         return self.__str__()
+
+
+__all__ = [Frame]
