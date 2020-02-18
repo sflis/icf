@@ -203,7 +203,6 @@ class ICFFile:
 
         index = struct.unpack("<{}I".format(ndata), self._file.read(ndata * 4))
         objsizes = np.array(index, dtype=np.uint32)
-        print('Ndata', ndata, self._file.tell(), bunch_n, bunchoff)
         return self._BunchTrailer(
             bunchoff,  # Offset to earlier bunch or file header if first bunch
             dataoff,  # Offset to beginning of data in bunch
@@ -219,14 +218,12 @@ class ICFFile:
         current_bt_fp = self.filesize
         rev_file_index = []
         while current_bt_fp > 0:
-            print(current_bt_fp)
             current_bt_fp = self._get_last_bunch_trailer(current_bt_fp)
             self._file.seek(current_bt_fp)
             bt = self._read_bunch_trailer()
             current_bt_fp -= bt.fileoff
             rev_file_index.append(current_bt_fp)
         self._file_index = list(reversed(rev_file_index))
-        print(self._file_index)
         raw_index = {}
         for i, file_start in enumerate(self._file_index):
             if i == len(self._file_index) - 1:
@@ -234,7 +231,6 @@ class ICFFile:
             else:
                 file_end = self._file_index[i + 1]
             raw_index.update(self._scan_sub_file(file_start, file_end, file_index=i))
-            print(i,raw_index)
         return raw_index
 
     def _scan_sub_file(self, pos_start, pos_end, file_index=0):
@@ -243,8 +239,6 @@ class ICFFile:
         rawindex = {}
         curr_bunch = 1
         while self._file.tell() >= pos_start and curr_bunch > 0:
-            print(self._file.tell(), pos_start)
-
             # read bunch trailer
             bt = self._read_bunch_trailer()
 
@@ -271,7 +265,6 @@ class ICFFile:
         else:
             self._file.seek(self._file_index[bunch_id[0]] +self._bunch_index[bunch_id][0])
             # bunch = self._compressor.decompress(
-            print(self._file_index[bunch_id[0]] + self._bunch_index[bunch_id][1])
             bunch = self._file.read(
                         self._bunch_index[bunch_id][1]
                         )
@@ -297,7 +290,6 @@ class ICFFile:
                 "The requested file object at index ({}) is out of range".format(ind)
             )
         obji = self._index[ind]
-        print(obji)
         if True:  # self._compressed:
             bunch = self._get_bunch(obji[0])
             return bunch[obji[1]: obji[1] + obji[2]]
