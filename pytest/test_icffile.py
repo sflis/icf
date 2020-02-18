@@ -85,6 +85,33 @@ def test_read_merged_files(icf_impl):
     assert fcat.read_at(1) == testdata2, "Correct data from file 2"
 
 
+def test_read_merged_files_multiple_bunches(icf_impl):
+    try:
+        os.remove("/tmp/testm1.icf")
+        os.remove("/tmp/testm2.icf")
+        os.remove("/tmp/catm.icf")
+    except:
+        pass
+    f1 = icf_impl("/tmp/testm1.icf", bunchsize=50)
+    f2 = icf_impl("/tmp/testm2.icf", bunchsize=50)
+    testdata1 = b"0" * 26
+    testdata2 = b'1' * 26
+    f1.write(testdata1)
+    f1.write(testdata1)
+    f1.write(testdata1)
+    f2.write(testdata2)
+    f2.write(testdata2)
+    f2.write(testdata2)
+    f1.close()
+    f2.close()
+    os.system("cat /tmp/testm1.icf /tmp/testm2.icf >> /tmp/catm.icf")
+    fcat = icf_impl("/tmp/catm.icf")
+
+    assert fcat.size() == 6, "Correct number of elements"
+    assert fcat.read_at(0) == testdata1, "Correct data from file 1"
+    assert fcat.read_at(3) == testdata2, "Correct data from file 2"
+
+
 def test_bunch_buffer():
     n = 10
     bf = pyicf.icffile.BunchBuffer(n)
