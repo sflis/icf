@@ -39,6 +39,7 @@ def test_read_while_writing(icf_impl):
     testdata2 = b'blabasdasdlakaskdlaskd'
     f.write(testdata1)
     f.write(testdata2)
+    assert f.size() == 2, "Correct number of objects in file"
     assert f.read_at(0) == testdata1, "Read back correct data"
     assert f.read_at(1) == testdata2, "Read back correct data"
 
@@ -80,7 +81,7 @@ def test_read_merged_files(icf_impl):
     os.system("cat /tmp/test1.icf /tmp/test2.icf >> /tmp/cat.icf")
     fcat = icf_impl("/tmp/cat.icf")
 
-    assert fcat.size() == 2, "Correct number of elements"
+    assert fcat.size() == 2, "Correct number of objects in file"
     assert fcat.read_at(0) == testdata1, "Correct data from file 1"
     assert fcat.read_at(1) == testdata2, "Correct data from file 2"
 
@@ -107,7 +108,7 @@ def test_read_merged_files_multiple_bunches(icf_impl):
     os.system("cat /tmp/testm1.icf /tmp/testm2.icf >> /tmp/catm.icf")
     fcat = icf_impl("/tmp/catm.icf")
 
-    assert fcat.size() == 6, "Correct number of elements"
+    assert fcat.size() == 6, "Correct number of objects in file"
     assert fcat.read_at(0) == testdata1, "Correct data from file 1"
     assert fcat.read_at(3) == testdata2, "Correct data from file 2"
 

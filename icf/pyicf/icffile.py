@@ -215,8 +215,10 @@ class ICFFile:
         )
 
     def _scan_file(self):
+
         current_bt_fp = self.filesize
         rev_file_index = []
+        # first pass to find where the sub files start
         while current_bt_fp > 0:
             current_bt_fp = self._get_last_bunch_trailer(current_bt_fp)
             self._file.seek(current_bt_fp)
@@ -224,6 +226,8 @@ class ICFFile:
             current_bt_fp -= bt.fileoff
             rev_file_index.append(current_bt_fp)
         self._file_index = list(reversed(rev_file_index))
+
+        # Scan each sub file
         raw_index = {}
         for i, file_start in enumerate(self._file_index):
             if i == len(self._file_index) - 1:
