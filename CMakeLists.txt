@@ -18,7 +18,7 @@ if((APPLE) OR (EXISTS $ENV{CONDA_PREFIX}))
 
   # when building, don't use the install RPATH already
   # (but later on when installing)
-  set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE) # Changed to TRUE by A.O.
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE) # Changed to TRUE by A.O.
 
   set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
