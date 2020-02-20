@@ -28,6 +28,7 @@ def test_write_and_readback_from_icffile(icf_impl):
     assert f.read_at(0) == testdata1, "Read back correct data"
     assert f.read_at(1) == testdata2, "Read back correct data"
 
+
 def test_read_while_writing(icf_impl):
     try:
         os.remove("/tmp/test.icf")
@@ -38,6 +39,8 @@ def test_read_while_writing(icf_impl):
     testdata2 = b'blabasdasdlakaskdlaskd'
     f.write(testdata1)
     f.write(testdata2)
+
+    assert f.size() == 2, "Correct number of objects in file"
     assert f.read_at(0) == testdata1, "Read back correct data"
     assert f.read_at(1) == testdata2, "Read back correct data"
 
@@ -47,8 +50,9 @@ def test_write_read_multiple_bunches(icf_impl):
         os.remove("/tmp/test.icf")
     except:
         pass
-    f = pyicf.ICFFile("/tmp/test.icf",bunchsize=50)
-    data = b"0"*26
+
+    f = pyicf.ICFFile("/tmp/test.icf", bunchsize=50)
+    data = b"0" * 26
 
     for i in range(6):
         f.write(data)
@@ -59,6 +63,7 @@ def test_write_read_multiple_bunches(icf_impl):
 
     for i in range(6):
         assert f.read_at(i) == data
+
 
 def test_read_merged_files(icf_impl):
     try:
@@ -78,10 +83,37 @@ def test_read_merged_files(icf_impl):
     os.system("cat /tmp/test1.icf /tmp/test2.icf >> /tmp/cat.icf")
     fcat = icf_impl("/tmp/cat.icf")
 
-    assert fcat.size() == 2, "Correct number of elements"
+
+    assert fcat.size() == 2, "Correct number of objects in file"
     assert fcat.read_at(0) == testdata1, "Correct data from file 1"
     assert fcat.read_at(1) == testdata2, "Correct data from file 2"
 
+
+def test_read_merged_files_multiple_bunches(icf_impl):
+    try:
+        os.remove("/tmp/testm1.icf")
+        os.remove("/tmp/testm2.icf")
+        os.remove("/tmp/catm.icf")
+    except:
+        pass
+    f1 = icf_impl("/tmp/testm1.icf", bunchsize=50)
+    f2 = icf_impl("/tmp/testm2.icf", bunchsize=50)
+    testdata1 = b"0" * 26
+    testdata2 = b'1' * 26
+    f1.write(testdata1)
+    f1.write(testdata1)
+    f1.write(testdata1)
+    f2.write(testdata2)
+    f2.write(testdata2)
+    f2.write(testdata2)
+    f1.close()
+    f2.close()
+    os.system("cat /tmp/testm1.icf /tmp/testm2.icf >> /tmp/catm.icf")
+    fcat = icf_impl("/tmp/catm.icf")
+
+    assert fcat.size() == 6, "Correct number of objects in file"
+    assert fcat.read_at(0) == testdata1, "Correct data from file 1"
+    assert fcat.read_at(3) == testdata2, "Correct data from file 2"
 
 
 def test_bunch_buffer():
@@ -96,6 +128,4 @@ def test_bunch_buffer():
     bf[n] = [n]
     assert n in bf, "New element in Bunch Buffer"
     assert 0 not in bf, "Oldest element removed from Bunch Buffer"
-
-
 
