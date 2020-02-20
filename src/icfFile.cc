@@ -82,18 +82,19 @@ void ICFFile::flush(){
     if(write_buffer_.size()<1){
         return;
     }
+
     file_handle_.seekp(0, std::ios_base::end);
     auto bunch_start_fp = file_handle_.tellp();
     std::vector<uint32_t> cbunchindex;
-    // cbunchindex_
+
     for(auto &data: write_buffer_){
         cbunchindex.push_back(data->size());
         file_handle_.write(data->data(),data->size());
     }
     auto curr_bt_fp = file_handle_.tellp();
     ICFFile::ICFBunchTrailer bunch_trailer(curr_bt_fp,
-                                           curr_bt_fp-last_bunch_fp_,
-                                           curr_bt_fp-bunch_start_fp,
+                                           static_cast<uint64_t>(curr_bt_fp) - last_bunch_fp_,
+                                           curr_bt_fp - bunch_start_fp,
                                            write_buffer_.size(),
                                            bunch_number_);
     serializer_stream_<<bunch_trailer;
@@ -106,7 +107,6 @@ void ICFFile::flush(){
     write_buffer_.clear();
     cbunchoffset_ = 0;
     bunch_number_++;
-
 }
 
 
