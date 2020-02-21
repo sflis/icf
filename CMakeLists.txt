@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.11...3.16)
 
 project(icf VERSION 1.0 LANGUAGES CXX)
+option(PYTHON_SETUP "If invoked by setup.py" OFF)
 set(LIBTARGET ${PROJECT_NAME})
 set(PYTARGET ${PROJECT_NAME}_py)
 set(CMAKE_CXX_STANDARD 17)
@@ -18,7 +19,7 @@ if((APPLE) OR (EXISTS $ENV{CONDA_PREFIX}))
 
   # when building, don't use the install RPATH already
   # (but later on when installing)
-  set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE) # Changed to TRUE by A.O.
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE) # Changed to TRUE by A.O.
 
   set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
@@ -89,6 +90,8 @@ include_directories( ${CMAKE_BINARY_DIR}/generated/)
 
 
 # pybind
+# set(PỲTARGET_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/icf/_ext/")
+# message(${PYTARGET_OUTPUT_DIR})
 pybind11_add_module(${PYTARGET} pybind/module.cc pybind/icfFile.cc)
 target_link_libraries(${PYTARGET} PRIVATE ${LIBTARGET})
 set_target_properties(${PYTARGET}
@@ -96,7 +99,7 @@ set_target_properties(${PYTARGET}
       PREFIX ""
       LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/icf/_ext/"
 )
-
+if(NOT PYTHON_SETUP)
 # Python stuff
 # Creating a symlink to the python package
 add_custom_command(TARGET ${PYTARGET} POST_BUILD
@@ -110,7 +113,9 @@ add_custom_command(TARGET ${PYTARGET} POST_BUILD
 if(Python3_Interpreter_FOUND)
   add_test(NAME PythonTests COMMAND Python3::Interpreter -m pytest -r a -v WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pytest")
 endif()
-configure_file(setup.py.in "${PROJECT_BINARY_DIR}/setup.py")
+
+
+  configure_file(setup.py.in "${PROJECT_BINARY_DIR}/setup.py")
 
 
 # Place the initialization file in the output directory for the Python
@@ -134,3 +139,4 @@ target_link_libraries(test_ICFFile ${LIBTARGET})
 target_include_directories(test_ICFFile PUBLIC ctests ${DOCTEST_INCLUDE_DIR})
 target_compile_features(test_ICFFile PRIVATE cxx_std_11)
 
+endif()
