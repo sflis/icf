@@ -78,7 +78,7 @@ void ICFFile::write(const void* data, std::size_t size){
 }
 
 void ICFFile::flush(){
-    cbunchoffset_ = 0;
+
     if(write_buffer_.size()<1){
         return;
     }
@@ -101,8 +101,11 @@ void ICFFile::flush(){
     for(const auto &index: cbunchindex){
         serializer_stream_<<index;
     }
+
+    // This offset enables us to find the start of the last bunch trailer in the file
     uint32_t offset_to_bt_start = file_handle_.tellp() - curr_bt_fp;
     serializer_stream_<<offset_to_bt_start;
+
     last_bunch_fp_ = curr_bt_fp;
     write_buffer_.clear();
     cbunchoffset_ = 0;

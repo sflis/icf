@@ -116,6 +116,27 @@ def test_read_merged_files_multiple_bunches(icf_impl):
     assert fcat.read_at(3) == testdata2, "Correct data from file 2"
 
 
+def test_extwrie_pyread():
+    try:
+        os.remove("/tmp/ext.icf")
+    except:
+         pass
+    f = ICFFile("/tmp/ext.icf")
+    testdata1 = b'blablakaskdlaskd'
+    testdata2 = b'blabasdasdlakaskdlaskd'
+    f.write(testdata1)
+    f.write(testdata2)
+    timestamp = f.get_timestamp()
+    f.close()
+
+    f_py = pyicf.ICFFile("/tmp/ext.icf")
+
+    assert f_py.get_timestamp() == timestamp, "Consistent time stamp"
+    assert f_py.size() == 2, "Consistent number of chunks"
+    assert f_py.read_at(0) == testdata1, "Correct data written in ext and read in py"
+    assert f_py.read_at(1) == testdata2, "Correct data written in ext and read in py"
+
+
 def test_bunch_buffer():
     n = 10
     bf = pyicf.icffile.BunchBuffer(n)
