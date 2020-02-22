@@ -3,7 +3,7 @@ from collections import deque, namedtuple
 from datetime import datetime
 import os
 import numpy as np
-from icf._icf.utils import get_si_prefix
+from icf.utils import get_si_prefix
 
 
 class ICFFile:
