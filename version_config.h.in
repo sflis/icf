@@ -1,13 +1,11 @@
 #ifndef ICF_VERSION_CONFIG_H
 #define ICF_VERSION_CONFIG_H
 
-// define your version_libinterface
-#define ICF_VERSION_LIB @ICF_VERSION_LIB@
+#define ICF_VERSION_LIB @ICF_VERSION@
 
-// alternatively you could add your global method getLibInterfaceVersion here
 const char* getVersion()
 {
-    return "@ICF_VERSION_LIB@";
+    return "@ICF_VERSION@";
 }
 
 #endif // ICF_VERSION_CONFIG_H

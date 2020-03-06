@@ -71,6 +71,7 @@ void ICFFile::write(const void* data, std::size_t size){
     write_buffer_.push_back(datacopy);
     n_entries_ +=1;
     cbunchoffset_ += size;
+
     if(cbunchoffset_> bunchsize_){
         flush();
     }

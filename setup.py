@@ -83,7 +83,7 @@ class CMakeBuild(build_ext):
         cmake_args = [
             '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + build_directory,
             '-DPYTHON_EXECUTABLE=' + sys.executable,
-            '-DCMAKE_INSTALL_PREFIX=' + env['CONDA_PREFIX'],
+            # '-DCMAKE_INSTALL_PREFIX=' + env['CONDA_PREFIX'],
             '-DPYTHON_SETUP=ON'
         ]
 

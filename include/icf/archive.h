@@ -42,6 +42,8 @@ For more information, please refer to <https://unlicense.org>
 #include <exception>
 #include <stdexcept>
 
+typedef len_t uint64_t;
+
 namespace EndianSwapper
 {
     class SwapByteBase
@@ -244,6 +246,26 @@ class Archive
         SERIALIZER_FOR_POD(unsigned long long)
         SERIALIZER_FOR_POD(float)
         SERIALIZER_FOR_POD(double)
+
+        Archive& operator&(len_t & v)
+        {
+            char first_byte;
+            m_stream.read(&first_byte, sizeof(char));
+            if(!m_stream) { throw std::runtime_error("malformed data"); }
+            uint8_t number_of_bytes = (first_byte%4)*2-1;
+            m_stream.read((char*)&v, sizeof(number_of_bytes));
+            v+= first_byte/4;
+            v = Swap(v);
+            return *this;
+        }
+
+        const Archive& operator&(len_t  v) const
+        {
+            v = Swap(v);
+            m_stream.write((const char*)&v, sizeof(len_t ));
+            return *this;
+        }
+
 
 
 #define SERIALIZER_FOR_STL(type) \
