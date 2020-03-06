@@ -9,7 +9,7 @@ install_requires = ["numpy"]
 setup(
     name="pyicf",
 
-    version="@ICF_VERSION_LIB@",
+    version="@ICF_VERSION@",
     description="An indexable container file format.",
     author="Samuel Flis",
     author_email="samuel.d.flis@gmail.com",
