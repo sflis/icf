@@ -8,6 +8,12 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+if(EXISTS $ENV{CONDA_PREFIX})
+  set(CMAKE_INSTALL_PREFIX $ENV{CONDA_PREFIX})
+
+endif()
+
+
 if((APPLE) OR (EXISTS $ENV{CONDA_PREFIX}))
   # The following settings were copied from
   # https://cmake.org/Wiki/CMake_RPATH_handling
@@ -33,8 +39,9 @@ if((APPLE) OR (EXISTS $ENV{CONDA_PREFIX}))
 endif()
 
 find_package(Git QUIET)
-find_package(Python3 COMPONENTS Interpreter)
-find_package(pybind11 REQUIRED)
+# find_package(Python3 COMPONENTS Interpreter)
+find_package(pybind11 QUIET)
+
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 include(CTest)
 include(ExternalProject)
@@ -44,16 +51,20 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # Dependencies
 include(FetchContent)
-FetchContent_Declare(
-    pybind11
-    GIT_REPOSITORY https://github.com/pybind/pybind11
-    GIT_TAG        v2.4.3
-)
 
-FetchContent_GetProperties(pybind11)
-if(NOT pybind11_POPULATED)
-    FetchContent_Populate(pybind11)
-    add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
+if(NOT pybind11_FOUND)
+  FetchContent_Declare(
+      pybind11
+      GIT_REPOSITORY https://github.com/pybind/pybind11
+      GIT_TAG        v2.4.3
+      GIT_SHALLOW TRUE
+  )
+
+  FetchContent_GetProperties(pybind11)
+  if(NOT pybind11_POPULATED)
+      FetchContent_Populate(pybind11)
+      add_subdirectory(${pybind11_SOURCE_DIR} ${pybind11_BINARY_DIR})
+  endif()
 endif()
 
 if(NOT PYTHON_SETUP)
@@ -62,14 +73,18 @@ if(NOT PYTHON_SETUP)
       doctest
       GIT_REPOSITORY https://github.com/onqtam/doctest
       GIT_TAG        2.3.6
+      GIT_SHALLOW TRUE
   )
   FetchContent_GetProperties(doctest)
   if(NOT doctest_POPULATED)
       FetchContent_Populate(doctest)
+      set(DOCTEST_WITH_TESTS OFF CACHE BOOL "No tests of doctests")
+      set(DOCTEST_NO_INSTALL ON CACHE BOOL "No doctest install")
       add_subdirectory(${doctest_SOURCE_DIR} ${doctest_BINARY_DIR})
   endif()
   set(DOCTEST_INCLUDE_DIR ${doctest_SOURCE_DIR}/doctest CACHE INTERNAL "Path to include folder for doctest")
 endif()
+
 
 # src
 add_library(${LIBTARGET} SHARED src/icfFile.cc)
@@ -78,8 +93,17 @@ target_include_directories(${LIBTARGET} PUBLIC
     $<INSTALL_INTERFACE:include/>
     )
 target_compile_features(${LIBTARGET} PUBLIC cxx_std_11)
-install (TARGETS ${LIBTARGET} EXPORT icf-file-targets LIBRARY DESTINATION lib)
 
+if(PYTHON_SETUP AND NOT EXISTS $ENV{CONDA_PREFIX})
+  set_target_properties(${LIBTARGET}
+      PROPERTIES
+        PREFIX ""
+        LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/icf/_ext/"
+  )
+else()
+  install (TARGETS ${LIBTARGET} EXPORT icf-file-targets LIBRARY DESTINATION lib)
+  install (DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)
+endif()
 # Makes it easier for IDEs to find all headers
 source_group(TREE "${PROJECT_SOURCE_DIR}/include" PREFIX "Header Files" FILES ${HEADER_LIST})
 
@@ -115,7 +139,7 @@ add_custom_command(TARGET ${PYTARGET} POST_BUILD
 
 
 if(Python3_Interpreter_FOUND)
-  add_test(NAME PythonTests COMMAND Python3::Interpreter -m pytest -r a -v WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pytest")
+  add_test(NAME PythonTests COMMAND python3 -m pytest -r a -v WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/pytest")
 endif()
 
 
