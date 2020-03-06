@@ -120,7 +120,7 @@ string(REGEX REPLACE "^v[0-9]+\\.([0-9]+).*" "\\1" VERSION_MINOR "${VERSION}")
 string(REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.([0-9]+).*" "\\1" VERSION_PATCH "${VERSION}")
 string(REGEX REPLACE "^v[0-9]+\\.[0-9]+\\.[0-9]+(.*)" "\\1" VERSION_SHA1 "${VERSION}")
 set(ICF_VERSION "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH}")
-
+message(STATUS ICF_VERSION)
 configure_file( version_config.h.in ${CMAKE_BINARY_DIR}/generated/version_config.h )
 include_directories( ${CMAKE_BINARY_DIR}/generated/)
 
@@ -151,7 +151,7 @@ if(Python3_Interpreter_FOUND)
 endif()
 
 
-  configure_file(setup.py.in "${PROJECT_BINARY_DIR}/setup.py")
+configure_file(setup.py.in "${PROJECT_BINARY_DIR}/setup.py")
 
 
 # Place the initialization file in the output directory for the Python

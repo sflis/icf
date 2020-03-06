@@ -4,8 +4,6 @@
 ###########################################
 from setuptools import setup, find_packages
 
-install_requires = ["numpy"]
-
 setup(
     name="pyicf",
 
@@ -17,7 +15,6 @@ setup(
     packages=find_packages(),
     provides=["icf"],
     license="GNU Lesser General Public License v3 or later",
-    install_requires=install_requires,
     package_data = {
         'icf': ['_ext/*']
       },
