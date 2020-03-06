@@ -42,7 +42,7 @@ For more information, please refer to <https://unlicense.org>
 #include <exception>
 #include <stdexcept>
 
-typedef len_t uint64_t;
+// typedef len_t uint64_t;
 
 namespace EndianSwapper
 {
