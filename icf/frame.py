@@ -106,7 +106,7 @@ class B(SerializationDispatcher, types=[bytes, bytearray]):
 
     @classmethod
     def deserialize(cls, data):
-        return cls.bytes
+        return data
 
 
 class I(SerializationDispatcher, types=[int]):
