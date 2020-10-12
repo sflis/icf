@@ -28,6 +28,9 @@ class ICFFile:
     _BunchTrailer = namedtuple(
         "BunchTrailer", "bunchoff dataoff fileoff bunchsize ndata index objsize bunch_n"
     )
+    _ObjectOffset = namedtuple("ObjectOffset", "bunch_id offset size")
+    _BunchOffset = namedtuple("BunchOffset", "offset size")
+    _BunchID = namedtuple("BunchID", "file_n bunch_n")
 
     def __init__(
         self,
@@ -134,9 +137,19 @@ class ICFFile:
         """
 
         self._write_buffer.extend(data)
+
+
+        self.n_entries += 1
+        bunch_id = self._BunchID(self._file_index[-1],
+                                 self._bunch_number)
+        self._bunch_buffer.set_curr_wbunch(bunch_id,
+                                           self._write_buffer)
+
+        self._index.append(self._ObjectOffset(bunch_id,
+                                              self._cbunchoffset,
+                                              len(data)))
         self._cbunchoffset += len(data)
         self._cbunchindex.append(len(data))
-        self.n_entries += 1
         if self._cbunchoffset > self.bunchsize:
             self.flush()
 
@@ -261,7 +274,7 @@ class ICFFile:
             bt = self._read_bunch_trailer()
 
             curr_bunch = bt.bunch_n
-            rawindex[(file_index, bt.bunch_n)] = bt
+            rawindex[self._BunchID(file_index, bt.bunch_n)] = bt
             current_bt_fp -= bt.bunchoff
             self._file.seek(current_bt_fp)
 
@@ -271,20 +284,24 @@ class ICFFile:
 
         for k, bunch in sorted(rawindex.items()):
             self._rawindex[k] = bunch
-            self._bunch_index[k] = (bunch.fileoff - bunch.dataoff, bunch.bunchsize)
+            self._bunch_index[k] = self._BunchOffset(bunch.fileoff - bunch.dataoff,
+                                                     bunch.bunchsize)
             for i, obj in enumerate(bunch.index):
-                self._index.append((k, int(obj), int(bunch.objsize[i])))
+                self._index.append(self._ObjectOffset(k,
+                                                      int(obj),
+                                                      int(bunch.objsize[i]))
+                                )
         self.n_entries = len(self._index)
 
     def _get_bunch(self, bunch_id):
-
         if bunch_id in self._bunch_buffer:
             return self._bunch_buffer[bunch_id]
         else:
-            self._file.seek(self._file_index[bunch_id[0]] +self._bunch_index[bunch_id][0])
+            self._file.seek(self._file_index[bunch_id.file_n]
+                            + self._bunch_index[bunch_id].offset)
             # bunch = self._compressor.decompress(
             bunch = self._file.read(
-                        self._bunch_index[bunch_id][1]
+                        self._bunch_index[bunch_id].size
                         )
             # )
             self._bunch_buffer[bunch_id] = bunch
@@ -309,8 +326,9 @@ class ICFFile:
             )
         obji = self._index[ind]
         if True:  # self._compressed:
-            bunch = self._get_bunch(obji[0])
-            return bunch[obji[1]: obji[1] + obji[2]]
+
+            bunch = self._get_bunch(obji.bunch_id)
+            return bunch[obji.offset: obji.offset + obji.size]
         # else:
         #     fpos = self.file_index[obji[0][0]] + self._bunch_index[obji[0]][0] + obji[1]
         #     self.file.seek(fpos)
@@ -347,10 +365,27 @@ class BunchBuffer(dict):
     def __init__(self, size):
         self.size = size
         self.queue = deque()
+        self.curr_wbunch = None
+        self.curr_wbunch_key = None
+
+    def set_curr_wbunch(self, key, bunch):
+        self.curr_wbunch = bunch
+        self.curr_wbunch_key = key
 
     def __setitem__(self, key, obj):
+
         self.queue.append((key, obj))
         super().__setitem__(key, obj)
         if len(self.queue) > self.size:
             bunch = self.queue.popleft()
             super().pop(bunch[0])
+
+    def __contains__(self, key):
+        return super().__contains__(key) or self.curr_wbunch_key == key
+
+    def __getitem__(self, key):
+
+        if key == self.curr_wbunch_key:
+            return self.curr_wbunch
+        else:
+            return super().__getitem__(key)
