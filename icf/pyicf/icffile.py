@@ -1,3 +1,5 @@
+"""Summary
+"""
 import struct
 from collections import deque, namedtuple
 from datetime import datetime
@@ -7,6 +9,20 @@ from icf.utils import get_si_prefix
 
 
 class ICFFile:
+
+    """Summary
+
+    Attributes:
+        bunchsize (TYPE): Description
+        compression (int): Description
+        file_identifier_ext (TYPE): Description
+        filesize (TYPE): Description
+        header_ext (TYPE): Description
+        n_entries (int): Description
+        timestamp (TYPE): Description
+        version (int): Description
+    """
+
     _file_header = struct.Struct("<4s4s2HQ2H")
     _bunch_trailer_header = struct.Struct("<2H4Q3I")
     _BunchTrailer = namedtuple(
@@ -25,7 +41,6 @@ class ICFFile:
         self.bunchsize = bunchsize
         self.header_ext = header_ext
         self.file_identifier_ext = file_identifier_ext
-        self._write_buffer = []
         self.version = 0
         self._index = []
         self._bunch_index = {}
@@ -36,7 +51,8 @@ class ICFFile:
         self._bunch_number = 0
         self._bunch_buffer = BunchBuffer(10)
         self._file_index = [0]
-
+        self._write_buffer = bytearray()
+        self._cbunchindex = []
         omode = "b"
         if mode == "append":
             omode += "a+"
@@ -117,9 +133,9 @@ class ICFFile:
                 data (bytes): bytes to be writen to file
         """
 
-        self._write_buffer.append(data)
+        self._write_buffer.extend(data)
         self._cbunchoffset += len(data)
-        # self._cbunchindex.append(len(data))
+        self._cbunchindex.append(len(data))
         self.n_entries += 1
         if self._cbunchoffset > self.bunchsize:
             self.flush()
@@ -136,14 +152,11 @@ class ICFFile:
         self._file.seek(0, os.SEEK_END)
 
         bunch_start_fp = self._file.tell()  # self._fp
+
         # writing the data bunch
-        cbunchindex = []
-        bytes_buff = bytearray()
-        for data in self._write_buffer:
-            bytes_buff.extend(data)
-            cbunchindex.append(len(data))
-        self._write(bytes_buff)
+        self._write(self._write_buffer)
         curr_bt_fp = self._file.tell()
+
         # Constructing and writing bunch trailer header
         bunch_index_trailer = self._bunch_trailer_header.pack(
             self.version,
@@ -152,15 +165,15 @@ class ICFFile:
             curr_bt_fp,
             curr_bt_fp - self._last_bunch_fp,
             curr_bt_fp - bunch_start_fp,
-            len(self._write_buffer),
+            len(self._cbunchindex),
             self._bunch_number,
             0,
         )
         self._write(bunch_index_trailer)
 
         # constructing the index and writing it in the bunch trailer
-        n = len(self._write_buffer)
-        bunch_index = struct.pack("<{}I".format(n), *cbunchindex)
+        n = len(self._cbunchindex)
+        bunch_index = struct.pack("<{}I".format(n), *self._cbunchindex)
         self._write(bunch_index)
 
         # Write offset to begining of bunch trailer
@@ -171,7 +184,8 @@ class ICFFile:
 
         self._file.flush()
         # reseting/updating the last bunch descriptors
-        self._write_buffer.clear()
+        self._write_buffer = bytearray()
+        self._cbunchindex.clear()
         self._cbunchoffset = 0
         self._bunch_number += 1
 
