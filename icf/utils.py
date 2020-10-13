@@ -3,7 +3,7 @@ import inspect
 
 
 def get_si_prefix(value: float) -> (float, str):
-    """ Returns the given value to the closest si prefix and
+    """Returns the given value to the closest si prefix and
         the correct si prefix
 
         example:
@@ -46,12 +46,12 @@ def get_si_prefix(value: float) -> (float, str):
 def get_attritbues(obj_):
     """Summary
 
-     Args:
-         obj_ (TYPE): Description
+    Args:
+        obj_ (TYPE): Description
 
-     Returns:
-         TYPE: Description
-     """
+    Returns:
+        TYPE: Description
+    """
     attributes = {}
     for attr in dir(obj_):
         if attr[0] == "_" or attr[:2] == "__":

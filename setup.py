@@ -3,6 +3,7 @@
 #### It has been auto-generated ###########
 ###########################################
 from setuptools import setup, find_packages
+
 install_requires = ["numpy"]
 
 setup(
@@ -30,4 +31,3 @@ setup(
     #     ]
     # },
 )
-

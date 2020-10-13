@@ -14,8 +14,8 @@ def test_write_and_readback_from_icffile(icf_impl):
     except:
         pass
     f = icf_impl("/tmp/test.icf")
-    testdata1 = b'blablakaskdlaskd'
-    testdata2 = b'blabasdasdlakaskdlaskd'
+    testdata1 = b"blablakaskdlaskd"
+    testdata2 = b"blabasdasdlakaskdlaskd"
     f.write(testdata1)
     f.write(testdata2)
     original_timestamp = f.get_timestamp()
@@ -35,8 +35,8 @@ def test_read_while_writing(icf_impl):
     except:
         pass
     f = icf_impl("/tmp/test.icf")
-    testdata1 = b'blablakaskdlaskd'
-    testdata2 = b'blabasdasdlakaskdlaskd'
+    testdata1 = b"blablakaskdlaskd"
+    testdata2 = b"blabasdasdlakaskdlaskd"
     f.write(testdata1)
     f.write(testdata2)
     assert f.size() == 2, "Correct number of objects in file"
@@ -72,8 +72,8 @@ def test_read_merged_files(icf_impl):
         pass
     f1 = icf_impl("/tmp/test1.icf")
     f2 = icf_impl("/tmp/test2.icf")
-    testdata1 = b'blablakaskdlaskd'
-    testdata2 = b'blabasdasdlakaskdlaskd'
+    testdata1 = b"blablakaskdlaskd"
+    testdata2 = b"blabasdasdlakaskdlaskd"
     f1.write(testdata1)
     f2.write(testdata2)
     f1.close()
@@ -96,7 +96,7 @@ def test_read_merged_files_multiple_bunches(icf_impl):
     f1 = icf_impl("/tmp/testm1.icf", bunchsize=50)
     f2 = icf_impl("/tmp/testm2.icf", bunchsize=50)
     testdata1 = b"0" * 26
-    testdata2 = b'1' * 26
+    testdata2 = b"1" * 26
     f1.write(testdata1)
     f1.write(testdata1)
     f1.write(testdata1)
@@ -125,6 +125,3 @@ def test_bunch_buffer():
     bf[n] = [n]
     assert n in bf, "New element in Bunch Buffer"
     assert 0 not in bf, "Oldest element removed from Bunch Buffer"
-
-
-

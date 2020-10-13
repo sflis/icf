@@ -83,7 +83,7 @@ class ICFFile:
             self.file_identifier_ext = fd_ext
             self.header_ext = self._file.read(ext_len)
             raw_index = self._scan_file()
-            #raw_index = self._scan_sub_file(self._file.tell(), self.filesize)
+            # raw_index = self._scan_sub_file(self._file.tell(), self.filesize)
             self._construct_file_index(raw_index)
 
         else:
@@ -130,24 +130,19 @@ class ICFFile:
         return datetime.fromtimestamp(self.timestamp)
 
     def write(self, data: bytes):
-        """ Writes a stream of bytes to file
+        """Writes a stream of bytes to file
 
-            args:
-                data (bytes): bytes to be writen to file
+        args:
+            data (bytes): bytes to be writen to file
         """
 
         self._write_buffer.extend(data)
 
-
         self.n_entries += 1
-        bunch_id = self._BunchID(self._file_index[-1],
-                                 self._bunch_number)
-        self._bunch_buffer.set_curr_wbunch(bunch_id,
-                                           self._write_buffer)
+        bunch_id = self._BunchID(self._file_index[-1], self._bunch_number)
+        self._bunch_buffer.set_curr_wbunch(bunch_id, self._write_buffer)
 
-        self._index.append(self._ObjectOffset(bunch_id,
-                                              self._cbunchoffset,
-                                              len(data)))
+        self._index.append(self._ObjectOffset(bunch_id, self._cbunchoffset, len(data)))
         self._cbunchoffset += len(data)
         self._cbunchindex.append(len(data))
         if self._cbunchoffset > self.bunchsize:
@@ -157,9 +152,7 @@ class ICFFile:
         self._file.write(data)
 
     def flush(self):
-        """Flushes any data in buffer to file.
-
-        """
+        """Flushes any data in buffer to file."""
         if len(self._write_buffer) < 1:
             return
         self._file.seek(0, os.SEEK_END)
@@ -225,7 +218,7 @@ class ICFFile:
             dataoff,
             ndata,
             bunch_n,
-            flags
+            flags,
         ) = self._bunch_trailer_header.unpack(last_bunch_trailer)
 
         index = struct.unpack("<{}I".format(ndata), self._file.read(ndata * 4))
@@ -284,25 +277,24 @@ class ICFFile:
 
         for k, bunch in sorted(rawindex.items()):
             self._rawindex[k] = bunch
-            self._bunch_index[k] = self._BunchOffset(bunch.fileoff - bunch.dataoff,
-                                                     bunch.bunchsize)
+            self._bunch_index[k] = self._BunchOffset(
+                bunch.fileoff - bunch.dataoff, bunch.bunchsize
+            )
             for i, obj in enumerate(bunch.index):
-                self._index.append(self._ObjectOffset(k,
-                                                      int(obj),
-                                                      int(bunch.objsize[i]))
-                                )
+                self._index.append(
+                    self._ObjectOffset(k, int(obj), int(bunch.objsize[i]))
+                )
         self.n_entries = len(self._index)
 
     def _get_bunch(self, bunch_id):
         if bunch_id in self._bunch_buffer:
             return self._bunch_buffer[bunch_id]
         else:
-            self._file.seek(self._file_index[bunch_id.file_n]
-                            + self._bunch_index[bunch_id].offset)
+            self._file.seek(
+                self._file_index[bunch_id.file_n] + self._bunch_index[bunch_id].offset
+            )
             # bunch = self._compressor.decompress(
-            bunch = self._file.read(
-                        self._bunch_index[bunch_id].size
-                        )
+            bunch = self._file.read(self._bunch_index[bunch_id].size)
             # )
             self._bunch_buffer[bunch_id] = bunch
             return bunch
@@ -328,7 +320,7 @@ class ICFFile:
         if True:  # self._compressed:
 
             bunch = self._get_bunch(obji.bunch_id)
-            return bunch[obji.offset: obji.offset + obji.size]
+            return bunch[obji.offset : obji.offset + obji.size]
         # else:
         #     fpos = self.file_index[obji[0][0]] + self._bunch_index[obji[0]][0] + obji[1]
         #     self.file.seek(fpos)
@@ -336,10 +328,10 @@ class ICFFile:
         #     return self.file.read(obji[2])
 
     def read(self) -> bytes:
-        """ Reads one object at the position of the file pointer.
+        """Reads one object at the position of the file pointer.
 
-            Returns:
-                bytes: Bytes that represent the object
+        Returns:
+            bytes: Bytes that represent the object
         """
         self._current_index += 1
         return self.read_at(self._current_index - 1)

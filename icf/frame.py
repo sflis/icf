@@ -235,7 +235,7 @@ class Frame:
         return self._objects[key]
 
     def get(self, key):
-        """ Behaves like the dict version of `get`. Returns
+        """Behaves like the dict version of `get`. Returns
             the object if it exiest in the frame. If not
             the return value is None.
 
