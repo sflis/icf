@@ -170,7 +170,7 @@ class Q(SerializationDispatcher, types=[list, tuple, set]):
             # The size of the object is always encoded as 2*(number of bytes).
             # The first bit of the size field is reserved to indicate whether
             # the size of the field is 16 or 32 bit.
-            if size > 2 ** 16:
+            if size >= 2 ** 16:
                 el_header = struct.pack(
                     "<sI", els.__class__.__name__.encode(), size + 1
                 )
@@ -221,8 +221,8 @@ class Frame:
 
         for k, v in self._serialized.items():
             if k in self._objects:
-
                 continue
+
             self._deserialized_obj(k)
             yield k, self._objects[k]
 
@@ -233,6 +233,10 @@ class Frame:
         if key not in self._objects and key in self._serialized:
             self._deserialized_obj(key)
         return self._objects[key]
+
+    def  __delitem__(self, key):
+        del self._serialized[key]
+        del self._objects[key]
 
     def get(self, key):
         """Behaves like the dict version of `get`. Returns

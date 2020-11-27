@@ -40,6 +40,7 @@ class ICFFile:
         file_identifier_ext: str = "",
         compressor=None,
         bunchsize: int = 1000000,
+        custom_stream = None
     ):
         self.bunchsize = bunchsize
         self.header_ext = header_ext
@@ -64,7 +65,7 @@ class ICFFile:
         else:
             omode += "r"
 
-        self._file = open(filename, omode)
+        self._file = custom_stream or open(filename, omode)
         self.compression = 0
 
         self._file.seek(0, os.SEEK_END)
@@ -125,6 +126,11 @@ class ICFFile:
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         self._writer.close()
+
+    def get_file_size(self):
+        self._file.seek(0, os.SEEK_END)
+        self.filesize = self._file.tell()
+        return self.filesize
 
     def get_timestamp(self):
         return datetime.fromtimestamp(self.timestamp)
